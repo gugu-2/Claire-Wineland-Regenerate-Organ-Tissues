@@ -1,0 +1,15 @@
+- [x] **Phase 2: Scientific Depth**
+  - [x] **RAG Copilot Integration**
+    - [x] Install required packages or use lightweight local embeddings (scikit-learn TF-IDF)
+    - [x] Update `knowledge_copilot.py` to use vector search instead of hardcoded if/else
+    - [x] Create a small knowledge base of chunks (e.g. PubMed abstracts)
+  - [x] **Off-Target Scanning Architecture**
+    - [x] Setup async background task for Cas-OFFinder evaluation (using FastAPI BackgroundTasks)
+    - [x] Update `crispr_designer.py` to queue tasks instead of blocking synchronously for off-targets
+- [x] **Phase 3: Architecture & New Modalities**
+  - [x] **Database Expansion**
+    - [x] Add `patient_sessions` table in `core/models.py`
+    - [x] Add endpoint to save/load sessions
+  - [x] **Prime Editing Support (Sprint D)**
+    - [x] Update `crispr_designer.py` to include Prime Editing Guide RNA (pegRNA) design logic (PBS + RT template)
+    - [x] Update frontend `CrisprDesignerView.jsx` to show pegRNA modality
