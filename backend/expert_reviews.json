@@ -1,0 +1,50 @@
+{
+  "test_sgRNA_review_01": {
+    "candidate_id": "test_sgRNA_review_01",
+    "target_gene": "CCR5",
+    "sample_id": "PATIENT_001_WT",
+    "reviewer_name": "Dr. Eleanor Vance, MD PhD",
+    "reviewer_credentials": "Lead Investigator, Stem Cell & Gene Therapy Institute",
+    "irb_number": "IRB-2025-GEN-9912",
+    "decision": "APPROVED_WITH_CAVEATS",
+    "rationale": "Candidate exhibits >80% on-target cutting. Off-target screening via CIRCLE-seq mandated before non-human primate study.",
+    "checklist": {
+      "offtarget_reviewed": true,
+      "personal_snps_checked": true,
+      "wetlab_validation_mandated": true
+    },
+    "reviewed_at": "2026-09-13T11:01:19.148629+00:00"
+  },
+  "sgRNA_CCR5_Test_01": {
+    "candidate_id": "sgRNA_CCR5_Test_01",
+    "target_gene": "CCR5",
+    "sample_id": "PATIENT_001_WT",
+    "reviewer_name": "Dr. Jane Roe",
+    "reviewer_credentials": "MD, PhD",
+    "irb_number": "IRB-2026-999",
+    "decision": "EXPERT_APPROVED",
+    "rationale": "Approved for preclinical study",
+    "checklist": {
+      "offtarget_reviewed": true,
+      "personal_snps_checked": true,
+      "wetlab_validation_mandated": true
+    },
+    "reviewed_at": "2026-09-13T10:33:23.383013+00:00"
+  },
+  "sgRNA_CCR5_DB_Persist_Test": {
+    "candidate_id": "sgRNA_CCR5_DB_Persist_Test",
+    "target_gene": "CCR5",
+    "sample_id": "PATIENT_001_WT",
+    "reviewer_name": "Dr. Elena Rostova",
+    "reviewer_credentials": "MD, DSc",
+    "irb_number": "IRB-2026-TEST-77",
+    "decision": "EXPERT_APPROVED",
+    "rationale": "Verified no personal SNPs and off-target risk below threshold.",
+    "checklist": {
+      "offtarget_reviewed": true,
+      "personal_snps_checked": true,
+      "wetlab_validation_mandated": true
+    },
+    "reviewed_at": "2026-09-13T11:01:18.230292+00:00"
+  }
+}
