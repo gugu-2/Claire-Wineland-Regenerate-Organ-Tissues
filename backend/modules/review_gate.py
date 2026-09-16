@@ -36,13 +36,32 @@ def submit_expert_review(
     rationale: str,
     checklist_offtarget_reviewed: bool,
     checklist_personal_snps_checked: bool,
-    checklist_wetlab_validation_mandated: bool
+    checklist_wetlab_validation_mandated: bool,
+    # ── ONCOLOGY PHASE 1: Extended 6-point checklist ─────────────────────────
+    # These three fields are mandatory when sample_type_flag == "TUMOR".
+    # They enforce the critical safety standards for cancer research workflows.
+    checklist_tumor_normal_completed: bool = False,
+    checklist_clonal_fraction_assessed: bool = False,
+    checklist_cnv_impact_evaluated: bool = False,
+    sample_type_flag: str = "GERMLINE",  # "GERMLINE" or "TUMOR"
 ) -> Dict:
     """
     Records a formal human expert sign-off on a candidate guide RNA or differentiation protocol.
     Persists to SQLite database and mirrors to JSON file.
     """
     timestamp = datetime.now(timezone.utc).isoformat()
+
+    # Oncology safety guard: if TUMOR sample, all 6 checklist items must be true
+    oncology_mode = sample_type_flag == "TUMOR"
+    if oncology_mode and decision == "EXPERT_APPROVED":
+        if not (checklist_tumor_normal_completed and checklist_clonal_fraction_assessed):
+            decision = "APPROVED_WITH_CAVEATS"
+            rationale = (
+                "[AUTO-DOWNGRADE] Oncology safety: tumor-normal comparison or clonal "
+                "fraction assessment not confirmed as complete. Decision downgraded from "
+                f"EXPERT_APPROVED to APPROVED_WITH_CAVEATS. Original rationale: {rationale}"
+            )
+
     review_record = {
         "candidate_id": candidate_id,
         "target_gene": target_gene,
@@ -52,13 +71,28 @@ def submit_expert_review(
         "irb_number": irb_number,
         "decision": decision,
         "rationale": rationale,
+        "sample_type_flag": sample_type_flag,
+        "oncology_mode_active": oncology_mode,
         "checklist": {
+            # Original 3-point checklist
             "offtarget_reviewed": checklist_offtarget_reviewed,
             "personal_snps_checked": checklist_personal_snps_checked,
-            "wetlab_validation_mandated": checklist_wetlab_validation_mandated
+            "wetlab_validation_mandated": checklist_wetlab_validation_mandated,
+            # Phase 1 Oncology additions (3 new fields)
+            "tumor_normal_subtraction_completed": checklist_tumor_normal_completed,
+            "clonal_fraction_assessed": checklist_clonal_fraction_assessed,
+            "cnv_impact_on_offtarget_evaluated": checklist_cnv_impact_evaluated,
         },
-        "reviewed_at": timestamp
+        "oncology_disclaimer": (
+            "⚠️ ONCOLOGY MODE: This review covers a somatic tumor specimen. "
+            "All CRISPR designs target cancer-specific somatic mutations. "
+            "Wet-lab validation MUST include both tumor cell lines AND matched normal cells "
+            "to confirm tumor-specific editing. IBC pre-approval required before any in vivo work."
+            if oncology_mode else None
+        ),
+        "reviewed_at": timestamp,
     }
+
     
     # 1. Persist to database
     db = SessionLocal()
