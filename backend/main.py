@@ -116,6 +116,11 @@ class ExpertReviewRequest(BaseModel):
     checklist_offtarget_reviewed: bool
     checklist_personal_snps_checked: bool
     checklist_wetlab_validation_mandated: bool
+    # Phase 1: Oncology extended checklist
+    checklist_tumor_normal_completed: Optional[bool] = False
+    checklist_clonal_fraction_assessed: Optional[bool] = False
+    checklist_cnv_impact_evaluated: Optional[bool] = False
+    sample_type_flag: Optional[str] = "GERMLINE"
 
 class ReportGenerateRequest(BaseModel):
     sample_info: Dict[str, Any]
@@ -125,7 +130,27 @@ class ReportGenerateRequest(BaseModel):
     regeneration_data: Optional[Dict[str, Any]] = None
     citations: Optional[List[Dict[str, Any]]] = None
 
+# ── ONCOLOGY PHASE 1: Request Models ─────────────────────────────────────────
+
+class TumorNormalIngestRequest(BaseModel):
+    """
+    Request model for tumor-normal paired VCF ingestion.
+    Both VCFs are required — the normal VCF is used to subtract germline variants,
+    leaving only cancer-specific somatic mutations for CRISPR design.
+    """
+    patient_id: str
+    cancer_type: str                          # e.g. "NSCLC", "Breast Cancer", "GBM"
+    cancer_stage: Optional[str] = "Unknown"  # e.g. "Stage IIIB"
+    biopsy_site: Optional[str] = "Primary Tumor"
+    tumor_vcf_content: str                   # Raw VCF text from biopsy sequencing
+    normal_vcf_content: str                  # Raw VCF text from matched blood sample
+    tumor_purity: Optional[float] = 0.80    # Estimated fraction of cells that are cancer
+    sequencing_panel_mb: Optional[float] = 30.0  # Panel size for TMB calculation
+
+# ── End Phase 1 Pydantic models ───────────────────────────────────────────────
+
 # ----------------- Endpoints ----------------- #
+
 
 @app.get("/api/status")
 def get_system_status():
@@ -460,11 +485,161 @@ def get_cohort_matrix(target_gene: str = "CCR5"):
     """Computes cross-patient comparative efficiency and collision matrix across cohort."""
     return generate_cohort_comparison_matrix(target_gene=target_gene)
 
-@app.get("/api/audit/logs")
+@app.get(\"/api/audit/logs\")
 def get_audit_logs():
-    """Returns recent cryptographically signed audit trail logs."""
+    \"\"\"Returns recent cryptographically signed audit trail logs.\"\"\"
     return get_recent_audit_logs(limit=50)
 
-if __name__ == "__main__":
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ONCOLOGY PHASE 1 ENDPOINTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.post(\"/api/oncology/tumor-normal-ingest\")
+def ingest_tumor_normal_pair(req: TumorNormalIngestRequest, background_tasks: BackgroundTasks):
+    \"\"\"
+    ONCOLOGY PHASE 1 — Tumor-Normal Paired VCF Ingestion
+
+    Accepts a paired tumor biopsy VCF + matched normal (blood) VCF.
+    Performs:
+    1. Tumor-normal subtraction (isolates somatic-only mutations)
+    2. VAF calculation and clonal fraction (CCF) estimation
+    3. COSMIC / OncoKB hotspot annotation
+    4. TMB, MSI status, and CNV landscape calculation
+    5. Immunotherapy and oncolytic virus candidacy assessment
+
+    Returns a complete somatic cancer profile ready for OncoCRISPR design.
+
+    ⚠️ SAFETY: Only TRUNCAL mutations (CCF ≥ 60%) are flagged as safe CRISPR targets.
+    \"\"\"
+    from modules.somatic_variant_caller import call_somatic_variants, enrich_with_hotspot_annotations
+    from modules.tumor_genomics import generate_tumor_genomics_summary
+    from modules.variant_annotation import annotate_somatic_variants
+
+    # DURC screen
+    durc_flagged, durc_reason = screen_durc_risk(req.tumor_vcf_content)
+    if durc_flagged:
+        raise HTTPException(status_code=403, detail=durc_reason)
+
+    tumor_sample_id = f\"{req.patient_id}_TUMOR_{req.cancer_type.replace(' ', '_').upper()}\"
+
+    # Step 1: Somatic variant calling (tumor-normal subtraction)
+    somatic_variants, somatic_summary = call_somatic_variants(
+        tumor_vcf_content=req.tumor_vcf_content,
+        normal_vcf_content=req.normal_vcf_content,
+        tumor_purity=req.tumor_purity or 0.80,
+    )
+
+    # Step 2: Enrich with hotspot annotations
+    somatic_variants = enrich_with_hotspot_annotations(somatic_variants)
+
+    # Step 3: Deep somatic annotation (COSMIC/OncoKB from curated DB)
+    annotated_variants = annotate_somatic_variants(somatic_variants)
+
+    # Step 4: Tumor genomic biomarkers (TMB, MSI, CNV, purity)
+    genomics_summary = generate_tumor_genomics_summary(
+        somatic_variants=somatic_variants,
+        cancer_type=req.cancer_type,
+        sequencing_panel_mb=req.sequencing_panel_mb or 30.0,
+    )
+
+    # Step 5: Persist TumorSample to database
+    from core.models import TumorSampleModel, SomaticMutationModel
+    db = next((d for d in []), None)  # lazy import
+    try:
+        from core.database import SessionLocal as _SL
+        db = _SL()
+        tumor_rec = TumorSampleModel(
+            tumor_sample_id=tumor_sample_id,
+            patient_sample_id=req.patient_id,
+            cancer_type=req.cancer_type,
+            cancer_stage=req.cancer_stage,
+            biopsy_site=req.biopsy_site,
+            tumor_purity=genomics_summary[\"tumor_purity_estimate\"][\"estimated_purity\"],
+            tmb_score=genomics_summary[\"tumor_mutational_burden\"][\"tmb_score\"],
+            tmb_classification=genomics_summary[\"tumor_mutational_burden\"][\"tmb_classification\"],
+            msi_status=genomics_summary[\"microsatellite_instability\"][\"msi_status\"],
+            immunotherapy_eligible=genomics_summary[\"immunotherapy_eligible\"],
+            viral_therapy_candidate=genomics_summary[\"oncolytic_virus_candidate\"],
+            sample_type_flag=\"TUMOR\",
+        )
+        db.merge(tumor_rec)
+        db.commit()
+    except Exception as e:
+        if db:
+            db.rollback()
+    finally:
+        if db:
+            db.close()
+
+    # Step 6: Audit log
+    background_tasks.add_task(
+        record_audit_event,
+        action=\"ONCOLOGY_TUMOR_NORMAL_INGEST\",
+        user_id=req.patient_id,
+        details={
+            \"cancer_type\": req.cancer_type,
+            \"total_somatic_variants\": somatic_summary[\"total_somatic_variants\"],
+            \"safe_crispr_targets\": somatic_summary[\"safe_crispr_targets\"],
+            \"tmb_score\": genomics_summary[\"tumor_mutational_burden\"][\"tmb_score\"],
+            \"msi_status\": genomics_summary[\"microsatellite_instability\"][\"msi_status\"],
+        },
+        sample_id=tumor_sample_id,
+        status=\"SUCCESS\",
+    )
+
+    return {
+        \"tumor_sample_id\": tumor_sample_id,
+        \"patient_id\": req.patient_id,
+        \"cancer_type\": req.cancer_type,
+        \"somatic_call_summary\": somatic_summary,
+        \"tumor_genomics_summary\": genomics_summary,
+        \"somatic_variants\": annotated_variants,
+        \"oncology_mode_active\": True,
+        \"disclaimer\": (
+            \"ONCOLOGY RESEARCH MODE ACTIVE. Somatic variants have been identified by "
+            "tumor-normal subtraction. Only TRUNCAL mutations (CCF ≥ 60%) are flagged "
+            "as safe CRISPR targets. All designs require independent experimental "
+            "validation in tumor cell lines AND matched normal cells before any in vivo use. "
+            "IBC pre-approval mandatory for viral therapy designs.\"
+        ),
+    }
+
+
+@app.get(\"/api/oncology/tumor-mutational-burden/{tumor_sample_id}\")
+def get_tumor_mutational_burden(tumor_sample_id: str):
+    \"\"\"
+    ONCOLOGY PHASE 1 — Retrieve TMB and MSI status for a stored tumor sample.
+
+    Returns FDA biomarker thresholds and immunotherapy eligibility flags
+    for a previously ingested tumor sample.
+    \"\"\"
+    from core.models import TumorSampleModel
+    from core.database import SessionLocal as _SL
+    db = _SL()
+    try:
+        rec = db.query(TumorSampleModel).filter(
+            TumorSampleModel.tumor_sample_id == tumor_sample_id
+        ).first()
+        if not rec:
+            raise HTTPException(status_code=404, detail=f\"Tumor sample '{tumor_sample_id}' not found.\")
+        return {
+            \"tumor_sample_id\": rec.tumor_sample_id,
+            \"cancer_type\": rec.cancer_type,
+            \"tmb_score\": rec.tmb_score,
+            \"tmb_classification\": rec.tmb_classification,
+            \"fda_tmb_threshold\": 10.0,
+            \"pembrolizumab_eligible\": (rec.tmb_score or 0) >= 10.0,
+            \"msi_status\": rec.msi_status,
+            \"immunotherapy_eligible\": rec.immunotherapy_eligible,
+            \"oncolytic_virus_candidate\": rec.viral_therapy_candidate,
+            \"tumor_purity\": rec.tumor_purity,
+            \"sample_type_flag\": rec.sample_type_flag,
+        }
+    finally:
+        db.close()
+
+
+if __name__ == \"__main__\":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host=\"127.0.0.1\", port=8000)

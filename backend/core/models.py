@@ -46,6 +46,68 @@ class VariantModel(Base):
 
     sample = relationship("SampleModel", back_populates="variants")
 
+
+# ── ONCOLOGY PHASE 1: New Tables ─────────────────────────────────────────────
+
+class TumorSampleModel(Base):
+    """
+    Stores oncology-specific metadata for a tumor biopsy sample.
+    Linked to a matched normal SampleModel by patient_sample_id.
+    Created in Phase 1 (Somatic Cancer Foundation).
+    """
+    __tablename__ = "tumor_samples"
+
+    tumor_sample_id   = Column(String(64), primary_key=True, index=True)
+    patient_sample_id = Column(String(64), nullable=True, index=True)  # matched normal
+    cancer_type       = Column(String(128), nullable=True)   # "NSCLC", "Breast Cancer"
+    cancer_stage      = Column(String(32),  nullable=True)   # "Stage IIIB"
+    biopsy_site       = Column(String(128), nullable=True)   # "Primary Tumor", "Liver Met"
+    tumor_purity      = Column(Float, nullable=True)         # 0.0 – 1.0
+    tmb_score         = Column(Float, nullable=True)         # mutations / megabase
+    tmb_classification = Column(String(32), nullable=True)  # "TMB-High", "TMB-Low"
+    msi_status        = Column(String(16),  nullable=True)   # "MSI-H", "MSS", "MSI-L"
+    immunotherapy_eligible = Column(Boolean, default=False)
+    viral_therapy_candidate = Column(Boolean, default=False)
+    # CRITICAL SAFETY FLAG: distinguishes tumor from germline
+    sample_type_flag  = Column(String(32),  default="TUMOR",  nullable=False)
+    created_at        = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    somatic_mutations = relationship(
+        "SomaticMutationModel", back_populates="tumor_sample",
+        cascade="all, delete-orphan"
+    )
+
+
+class SomaticMutationModel(Base):
+    """
+    Stores individual somatic mutations identified by tumor-normal subtraction.
+    Each record is a cancer-specific variant absent from the matched normal VCF.
+    Created in Phase 1 (Somatic Cancer Foundation).
+    """
+    __tablename__ = "somatic_mutations"
+
+    id                      = Column(Integer, primary_key=True, autoincrement=True)
+    tumor_sample_id         = Column(String(64), ForeignKey("tumor_samples.tumor_sample_id"), index=True)
+    chromosome              = Column(String(16))
+    position                = Column(Integer, index=True)
+    ref                     = Column(String(256))
+    alt                     = Column(String(256))
+    gene                    = Column(String(64), nullable=True, index=True)
+    amino_acid_change       = Column(String(64), nullable=True)   # "G12D", "R175H"
+    variant_allele_frequency = Column(Float, nullable=True)       # 0.0 – 1.0
+    cancer_cell_fraction    = Column(Float, nullable=True)        # 0.0 – 1.0 (CCF)
+    clonal_classification   = Column(String(32), nullable=True)  # TRUNCAL / SUBCLONAL / RARE
+    cosmic_id               = Column(String(64), nullable=True)
+    cosmic_count            = Column(Integer, nullable=True)       # # of tumors in COSMIC
+    oncokb_tier             = Column(String(8), nullable=True)    # "1", "2A", "2B", "3A"
+    is_oncogenic            = Column(Boolean, default=False)
+    is_safe_crispr_target   = Column(Boolean, default=False)       # CCF >= 60% threshold
+    known_fda_therapy       = Column(Text, nullable=True)
+    crispr_strategy         = Column(Text, nullable=True)
+
+    tumor_sample = relationship("TumorSampleModel", back_populates="somatic_mutations")
+
+
 class ExpertReviewModel(Base):
     __tablename__ = "expert_reviews"
 
