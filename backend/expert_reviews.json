@@ -8,12 +8,18 @@
     "irb_number": "IRB-2025-GEN-9912",
     "decision": "APPROVED_WITH_CAVEATS",
     "rationale": "Candidate exhibits >80% on-target cutting. Off-target screening via CIRCLE-seq mandated before non-human primate study.",
+    "sample_type_flag": "GERMLINE",
+    "oncology_mode_active": false,
     "checklist": {
       "offtarget_reviewed": true,
       "personal_snps_checked": true,
-      "wetlab_validation_mandated": true
+      "wetlab_validation_mandated": true,
+      "tumor_normal_subtraction_completed": false,
+      "clonal_fraction_assessed": false,
+      "cnv_impact_on_offtarget_evaluated": false
     },
-    "reviewed_at": "2026-09-13T11:01:19.148629+00:00"
+    "oncology_disclaimer": null,
+    "reviewed_at": "2026-09-16T18:18:20.432510+00:00"
   },
   "sgRNA_CCR5_Test_01": {
     "candidate_id": "sgRNA_CCR5_Test_01",
@@ -40,11 +46,17 @@
     "irb_number": "IRB-2026-TEST-77",
     "decision": "EXPERT_APPROVED",
     "rationale": "Verified no personal SNPs and off-target risk below threshold.",
+    "sample_type_flag": "GERMLINE",
+    "oncology_mode_active": false,
     "checklist": {
       "offtarget_reviewed": true,
       "personal_snps_checked": true,
-      "wetlab_validation_mandated": true
+      "wetlab_validation_mandated": true,
+      "tumor_normal_subtraction_completed": false,
+      "clonal_fraction_assessed": false,
+      "cnv_impact_on_offtarget_evaluated": false
     },
-    "reviewed_at": "2026-09-13T11:01:18.230292+00:00"
+    "oncology_disclaimer": null,
+    "reviewed_at": "2026-09-16T18:18:12.937656+00:00"
   }
 }

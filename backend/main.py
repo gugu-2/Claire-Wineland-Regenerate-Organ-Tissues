@@ -149,6 +149,37 @@ class TumorNormalIngestRequest(BaseModel):
 
 # ── End Phase 1 Pydantic models ───────────────────────────────────────────────
 
+# ── ONCOLOGY PHASE 2: Request Models ─────────────────────────────────────────
+
+class AlleleSpecificDesignRequest(BaseModel):
+    """Phase 2: Allele-specific OncoCRISPR guide design."""
+    tumor_sample_id: str
+    target_mutation_name: str          # e.g. "KRAS G12D"
+    target_gene: str                   # e.g. "KRAS"
+    tumor_sequence: str                # 200+ bp window around mutation
+    wildtype_sequence: str             # Matched normal sequence same window
+    pam_type: Optional[str] = "SpCas9_NGG"
+    max_guides: Optional[int] = 5
+
+# ── ONCOLOGY PHASE 3: Request Models ─────────────────────────────────────────
+
+class ViralChassisRequest(BaseModel):
+    """Phase 3: Oncolytic virus chassis recommendation."""
+    cancer_type: str
+    tmb_classification: Optional[str] = "TMB-Low"
+    msi_status: Optional[str] = "MSS"
+    immune_status: Optional[str] = "Immunocompetent"
+    biopsy_site: Optional[str] = "Primary Tumor"
+
+class ViralBlueprintRequest(BaseModel):
+    """Phase 3: Full oncolytic virus engineering blueprint."""
+    virus_id: str                      # e.g. "HSV1_T-VEC_family"
+    cancer_type: str
+    cytokine_payload: Optional[str] = "GM-CSF"
+    promoter: Optional[str] = "TERT_promoter"
+
+# ── End Phase 2/3 Pydantic models ─────────────────────────────────────────────
+
 # ----------------- Endpoints ----------------- #
 
 
@@ -485,20 +516,20 @@ def get_cohort_matrix(target_gene: str = "CCR5"):
     """Computes cross-patient comparative efficiency and collision matrix across cohort."""
     return generate_cohort_comparison_matrix(target_gene=target_gene)
 
-@app.get(\"/api/audit/logs\")
+@app.get("/api/audit/logs")
 def get_audit_logs():
-    \"\"\"Returns recent cryptographically signed audit trail logs.\"\"\"
+    """Returns recent cryptographically signed audit trail logs."""
     return get_recent_audit_logs(limit=50)
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 # ONCOLOGY PHASE 1 ENDPOINTS
-# ═══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 
-@app.post(\"/api/oncology/tumor-normal-ingest\")
+@app.post("/api/oncology/tumor-normal-ingest")
 def ingest_tumor_normal_pair(req: TumorNormalIngestRequest, background_tasks: BackgroundTasks):
-    \"\"\"
-    ONCOLOGY PHASE 1 — Tumor-Normal Paired VCF Ingestion
+    """
+    ONCOLOGY PHASE 1 - Tumor-Normal Paired VCF Ingestion
 
     Accepts a paired tumor biopsy VCF + matched normal (blood) VCF.
     Performs:
@@ -510,8 +541,8 @@ def ingest_tumor_normal_pair(req: TumorNormalIngestRequest, background_tasks: Ba
 
     Returns a complete somatic cancer profile ready for OncoCRISPR design.
 
-    ⚠️ SAFETY: Only TRUNCAL mutations (CCF ≥ 60%) are flagged as safe CRISPR targets.
-    \"\"\"
+    SAFETY: Only TRUNCAL mutations (CCF >= 60%) are flagged as safe CRISPR targets.
+    """
     from modules.somatic_variant_caller import call_somatic_variants, enrich_with_hotspot_annotations
     from modules.tumor_genomics import generate_tumor_genomics_summary
     from modules.variant_annotation import annotate_somatic_variants
@@ -521,7 +552,7 @@ def ingest_tumor_normal_pair(req: TumorNormalIngestRequest, background_tasks: Ba
     if durc_flagged:
         raise HTTPException(status_code=403, detail=durc_reason)
 
-    tumor_sample_id = f\"{req.patient_id}_TUMOR_{req.cancer_type.replace(' ', '_').upper()}\"
+    tumor_sample_id = f"{req.patient_id}_TUMOR_{req.cancer_type.replace(' ', '_').upper()}"
 
     # Step 1: Somatic variant calling (tumor-normal subtraction)
     somatic_variants, somatic_summary = call_somatic_variants(
@@ -544,10 +575,10 @@ def ingest_tumor_normal_pair(req: TumorNormalIngestRequest, background_tasks: Ba
     )
 
     # Step 5: Persist TumorSample to database
-    from core.models import TumorSampleModel, SomaticMutationModel
-    db = next((d for d in []), None)  # lazy import
+    db = None
     try:
         from core.database import SessionLocal as _SL
+        from core.models import TumorSampleModel
         db = _SL()
         tumor_rec = TumorSampleModel(
             tumor_sample_id=tumor_sample_id,
@@ -555,17 +586,17 @@ def ingest_tumor_normal_pair(req: TumorNormalIngestRequest, background_tasks: Ba
             cancer_type=req.cancer_type,
             cancer_stage=req.cancer_stage,
             biopsy_site=req.biopsy_site,
-            tumor_purity=genomics_summary[\"tumor_purity_estimate\"][\"estimated_purity\"],
-            tmb_score=genomics_summary[\"tumor_mutational_burden\"][\"tmb_score\"],
-            tmb_classification=genomics_summary[\"tumor_mutational_burden\"][\"tmb_classification\"],
-            msi_status=genomics_summary[\"microsatellite_instability\"][\"msi_status\"],
-            immunotherapy_eligible=genomics_summary[\"immunotherapy_eligible\"],
-            viral_therapy_candidate=genomics_summary[\"oncolytic_virus_candidate\"],
-            sample_type_flag=\"TUMOR\",
+            tumor_purity=genomics_summary["tumor_purity_estimate"]["estimated_purity"],
+            tmb_score=genomics_summary["tumor_mutational_burden"]["tmb_score"],
+            tmb_classification=genomics_summary["tumor_mutational_burden"]["tmb_classification"],
+            msi_status=genomics_summary["microsatellite_instability"]["msi_status"],
+            immunotherapy_eligible=genomics_summary["immunotherapy_eligible"],
+            viral_therapy_candidate=genomics_summary["oncolytic_virus_candidate"],
+            sample_type_flag="TUMOR",
         )
         db.merge(tumor_rec)
         db.commit()
-    except Exception as e:
+    except Exception:
         if db:
             db.rollback()
     finally:
@@ -575,45 +606,42 @@ def ingest_tumor_normal_pair(req: TumorNormalIngestRequest, background_tasks: Ba
     # Step 6: Audit log
     background_tasks.add_task(
         record_audit_event,
-        action=\"ONCOLOGY_TUMOR_NORMAL_INGEST\",
+        action="ONCOLOGY_TUMOR_NORMAL_INGEST",
         user_id=req.patient_id,
         details={
-            \"cancer_type\": req.cancer_type,
-            \"total_somatic_variants\": somatic_summary[\"total_somatic_variants\"],
-            \"safe_crispr_targets\": somatic_summary[\"safe_crispr_targets\"],
-            \"tmb_score\": genomics_summary[\"tumor_mutational_burden\"][\"tmb_score\"],
-            \"msi_status\": genomics_summary[\"microsatellite_instability\"][\"msi_status\"],
+            "cancer_type": req.cancer_type,
+            "total_somatic_variants": somatic_summary["total_somatic_variants"],
+            "safe_crispr_targets": somatic_summary["safe_crispr_targets"],
+            "tmb_score": genomics_summary["tumor_mutational_burden"]["tmb_score"],
+            "msi_status": genomics_summary["microsatellite_instability"]["msi_status"],
         },
         sample_id=tumor_sample_id,
-        status=\"SUCCESS\",
+        status="SUCCESS",
     )
 
     return {
-        \"tumor_sample_id\": tumor_sample_id,
-        \"patient_id\": req.patient_id,
-        \"cancer_type\": req.cancer_type,
-        \"somatic_call_summary\": somatic_summary,
-        \"tumor_genomics_summary\": genomics_summary,
-        \"somatic_variants\": annotated_variants,
-        \"oncology_mode_active\": True,
-        \"disclaimer\": (
-            \"ONCOLOGY RESEARCH MODE ACTIVE. Somatic variants have been identified by "
-            "tumor-normal subtraction. Only TRUNCAL mutations (CCF ≥ 60%) are flagged "
-            "as safe CRISPR targets. All designs require independent experimental "
-            "validation in tumor cell lines AND matched normal cells before any in vivo use. "
-            "IBC pre-approval mandatory for viral therapy designs.\"
+        "tumor_sample_id": tumor_sample_id,
+        "patient_id": req.patient_id,
+        "cancer_type": req.cancer_type,
+        "somatic_call_summary": somatic_summary,
+        "tumor_genomics_summary": genomics_summary,
+        "somatic_variants": annotated_variants,
+        "oncology_mode_active": True,
+        "disclaimer": (
+            "ONCOLOGY RESEARCH MODE ACTIVE. Somatic variants identified by tumor-normal subtraction. "
+            "Only TRUNCAL mutations (CCF >= 60%) are flagged as safe CRISPR targets. "
+            "All designs require independent experimental validation in tumor cell lines AND "
+            "matched normal cells before any in vivo use. IBC pre-approval mandatory."
         ),
     }
 
 
-@app.get(\"/api/oncology/tumor-mutational-burden/{tumor_sample_id}\")
+@app.get("/api/oncology/tumor-mutational-burden/{tumor_sample_id}")
 def get_tumor_mutational_burden(tumor_sample_id: str):
-    \"\"\"
-    ONCOLOGY PHASE 1 — Retrieve TMB and MSI status for a stored tumor sample.
-
-    Returns FDA biomarker thresholds and immunotherapy eligibility flags
-    for a previously ingested tumor sample.
-    \"\"\"
+    """
+    ONCOLOGY PHASE 1 - Retrieve TMB and MSI status for a stored tumor sample.
+    Returns FDA biomarker thresholds and immunotherapy eligibility flags.
+    """
     from core.models import TumorSampleModel
     from core.database import SessionLocal as _SL
     db = _SL()
@@ -622,24 +650,156 @@ def get_tumor_mutational_burden(tumor_sample_id: str):
             TumorSampleModel.tumor_sample_id == tumor_sample_id
         ).first()
         if not rec:
-            raise HTTPException(status_code=404, detail=f\"Tumor sample '{tumor_sample_id}' not found.\")
+            raise HTTPException(status_code=404, detail=f"Tumor sample '{tumor_sample_id}' not found.")
         return {
-            \"tumor_sample_id\": rec.tumor_sample_id,
-            \"cancer_type\": rec.cancer_type,
-            \"tmb_score\": rec.tmb_score,
-            \"tmb_classification\": rec.tmb_classification,
-            \"fda_tmb_threshold\": 10.0,
-            \"pembrolizumab_eligible\": (rec.tmb_score or 0) >= 10.0,
-            \"msi_status\": rec.msi_status,
-            \"immunotherapy_eligible\": rec.immunotherapy_eligible,
-            \"oncolytic_virus_candidate\": rec.viral_therapy_candidate,
-            \"tumor_purity\": rec.tumor_purity,
-            \"sample_type_flag\": rec.sample_type_flag,
+            "tumor_sample_id": rec.tumor_sample_id,
+            "cancer_type": rec.cancer_type,
+            "tmb_score": rec.tmb_score,
+            "tmb_classification": rec.tmb_classification,
+            "fda_tmb_threshold": 10.0,
+            "pembrolizumab_eligible": (rec.tmb_score or 0) >= 10.0,
+            "msi_status": rec.msi_status,
+            "immunotherapy_eligible": rec.immunotherapy_eligible,
+            "oncolytic_virus_candidate": rec.viral_therapy_candidate,
+            "tumor_purity": rec.tumor_purity,
+            "sample_type_flag": rec.sample_type_flag,
         }
     finally:
         db.close()
 
 
-if __name__ == \"__main__\":
+# ═══════════════════════════════════════════════════════════════════════════════
+# ONCOLOGY PHASE 2 ENDPOINTS — OncoCRISPR Allele-Specific Design
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.post("/api/crispr/allele-specific-design")
+def design_allele_specific_guides(req: AlleleSpecificDesignRequest):
+    """
+    ONCOLOGY PHASE 2 — Allele-Specific CRISPR Guide Design
+
+    Designs CRISPR guides that selectively cleave the cancer mutation allele
+    (e.g., KRAS G12D) while leaving the healthy wildtype allele intact.
+
+    Two strategies evaluated:
+      1. MUTATION_CREATED_PAM  — somatic SNV creates a new NGG PAM (near-perfect selectivity)
+      2. SEED_MISMATCH_ENGINEERING — SNV at seed position 14-20 reduces wildtype cleavage
+
+    Only guides with discrimination_ratio >= 10x are returned.
+    """
+    from modules.allele_specific_designer import design_allele_specific_guides as _design
+    result = _design(
+        tumor_sequence=req.tumor_sequence,
+        wildtype_sequence=req.wildtype_sequence,
+        target_mutation_name=req.target_mutation_name,
+        target_gene=req.target_gene,
+        max_guides=req.max_guides or 5,
+    )
+    record_audit_event(
+        action="ONCOLOGY_ALLELE_SPECIFIC_DESIGN",
+        user_id="researcher",
+        details={
+            "target_gene": req.target_gene,
+            "target_mutation": req.target_mutation_name,
+            "guides_found": result.get("total_guides_found", 0),
+            "guides_passing": result.get("guides_passing_safety_threshold", 0),
+        },
+        sample_id=req.tumor_sample_id,
+        status="SUCCESS",
+    )
+    return result
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ONCOLOGY PHASE 3 ENDPOINTS — OncoViral Therapy Planner
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.post("/api/oncolytic/recommend-chassis")
+def recommend_viral_chassis(req: ViralChassisRequest):
+    """
+    ONCOLOGY PHASE 3 — Oncolytic Virus Chassis Recommendation
+
+    Recommends the top 3 oncolytic virus backbones for a patient's cancer profile.
+    Ranking factors: cancer-type match, clinical evidence quality (FDA precedent),
+    TMB/MSI immunological context, patient immune status, and BSL safety level.
+
+    Includes the MV + VSV combination strategy inspired by Dr. Beata Halassy's
+    self-treatment of breast cancer (published peer-reviewed case, 2024).
+    """
+    from modules.viral_tropism_modeler import recommend_viral_chassis as _recommend
+    result = _recommend(
+        cancer_type=req.cancer_type,
+        tmb_classification=req.tmb_classification or "TMB-Low",
+        msi_status=req.msi_status or "MSS",
+        immune_status=req.immune_status or "Immunocompetent",
+        biopsy_site=req.biopsy_site or "Primary Tumor",
+    )
+    record_audit_event(
+        action="ONCOLYTIC_CHASSIS_RECOMMENDATION",
+        user_id="researcher",
+        details={
+            "cancer_type": req.cancer_type,
+            "first_choice": result.get("first_choice", {}).get("short_name"),
+        },
+        sample_id=None,
+        status="SUCCESS",
+    )
+    return result
+
+
+@app.post("/api/oncolytic/design-blueprint")
+def design_viral_blueprint(req: ViralBlueprintRequest):
+    """
+    ONCOLOGY PHASE 3 — Oncolytic Virus Engineering Blueprint
+
+    Returns a complete viral therapy engineering specification:
+    - Required genomic deletions from backbone
+    - Cytokine payload design (GM-CSF, IL-12, IFN-beta, NIS)
+    - Tumor-specific promoter (TERT, Survivin, CEA, HER2)
+    - Golden Gate assembly strategy
+    - IBC pre-approval checklist
+    - Delivery protocol (dosing, schedule, monitoring)
+
+    BSL-2 containment requirements enforced for all viral therapy designs.
+    """
+    from modules.viral_tropism_modeler import design_viral_blueprint as _blueprint
+    result = _blueprint(
+        virus_id=req.virus_id,
+        cancer_type=req.cancer_type,
+        cytokine_payload=req.cytokine_payload or "GM-CSF",
+        promoter=req.promoter or "TERT_promoter",
+    )
+    record_audit_event(
+        action="ONCOLYTIC_BLUEPRINT_DESIGN",
+        user_id="researcher",
+        details={"virus_id": req.virus_id, "cancer_type": req.cancer_type},
+        sample_id=None,
+        status="SUCCESS",
+    )
+    return result
+
+
+@app.get("/api/oncolytic/viral-database")
+def get_viral_database():
+    """
+    ONCOLOGY PHASE 3 — Complete Oncolytic Virus Reference Database
+
+    Returns all available virus backbones with metadata:
+    HSV-1/T-VEC, Measles Virus (MV), VSV, Adenovirus Ad5-Delta24, Newcastle Disease Virus (NDV).
+    Includes cytokine payload catalog and tumor-specific promoter catalog.
+    """
+    from modules.viral_tropism_modeler import (
+        ONCOLYTIC_VIRUS_BACKBONES,
+        CYTOKINE_PAYLOADS,
+        TUMOR_SPECIFIC_PROMOTERS,
+    )
+    return {
+        "viral_backbones": list(ONCOLYTIC_VIRUS_BACKBONES.values()),
+        "cytokine_payloads": list(CYTOKINE_PAYLOADS.values()),
+        "tumor_specific_promoters": list(TUMOR_SPECIFIC_PROMOTERS.values()),
+        "total_backbones": len(ONCOLYTIC_VIRUS_BACKBONES),
+    }
+
+
+if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host=\"127.0.0.1\", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8000)
