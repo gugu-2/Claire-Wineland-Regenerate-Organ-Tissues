@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dna, ShieldCheck, FileCheck, Layers, Sparkles, AlertCircle, TestTube } from 'lucide-react';
+import { Dna, ShieldCheck, FileCheck, Layers, Sparkles, AlertCircle, TestTube, Target } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab, selectedSample, statusInfo, onRetryConnection, onToggleCopilot }) {
   const navItems = [
@@ -8,6 +8,8 @@ export default function Navbar({ activeTab, setActiveTab, selectedSample, status
     { id: 'wetlab', label: '3. Wet-Lab & Delivery Studio', icon: TestTube },
     { id: 'regeneration', label: '4. Stem Cell & Regeneration', icon: Sparkles },
     { id: 'report', label: '5. Research Dossier & Audit', icon: ShieldCheck },
+    { id: 'onco-crispr', label: '6. OncoCRISPR Designer', icon: Target, oncology: true },
+    { id: 'onco-viral', label: '7. OncoViral Therapy Planner', icon: Dna, oncology: true },
   ];
 
   return (
@@ -102,18 +104,26 @@ export default function Navbar({ activeTab, setActiveTab, selectedSample, status
           {navItems.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
+            const isOncology = tab.oncology;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-medium rounded-t-lg transition-all border-b-2 whitespace-nowrap ${
-                  isActive
+                  isActive && isOncology
+                    ? 'border-rose-400 text-rose-300 bg-rose-950/20'
+                    : isActive
                     ? 'border-cyan-400 text-cyan-400 bg-cyan-950/20'
+                    : isOncology
+                    ? 'border-transparent text-rose-500 hover:text-rose-300 hover:bg-rose-950/20'
                     : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900/40'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-cyan-400' : 'text-slate-500'}`} />
+                <Icon className={`w-4 h-4 ${isActive && isOncology ? 'text-rose-400' : isActive ? 'text-cyan-400' : isOncology ? 'text-rose-600' : 'text-slate-500'}`} />
                 {tab.label}
+                {isOncology && (
+                  <span className="text-[9px] px-1 py-0.5 bg-rose-950 border border-rose-800 text-rose-400 rounded font-bold leading-none">ONCO</span>
+                )}
               </button>
             );
           })}

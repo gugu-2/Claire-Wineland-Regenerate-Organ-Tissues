@@ -7,6 +7,8 @@ import RegenerationView from './components/RegenerationView';
 import KnowledgeCopilotView from './components/KnowledgeCopilotView';
 import ResearchReportView from './components/ResearchReportView';
 import ExpertReviewModal from './components/ExpertReviewModal';
+import OncoCrisprDesignerView from './components/OncoCrisprDesignerView';
+import OncoViralPlannerView from './components/OncoViralPlannerView';
 import { api } from './services/api';
 
 const FALLBACK_SAMPLES = [
@@ -444,6 +446,18 @@ export default function App() {
             candidates={candidateGuides}
             expertReviews={expertReviews}
             customEvaluation={customEvaluation}
+          />
+        )}
+
+        {activeTab === 'onco-crispr' && (
+          <OncoCrisprDesignerView
+            somaticProfile={null}
+          />
+        )}
+
+        {activeTab === 'onco-viral' && (
+          <OncoViralPlannerView
+            tumorProfile={null}
           />
         )}
       </main>

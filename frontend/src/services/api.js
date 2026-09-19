@@ -158,5 +158,57 @@ export const api = {
   async getOffTargetScanStatus(jobId) {
     const res = await fetch(`${API_BASE}/crispr/off-target-scan/${jobId}`);
     return res.json();
+  },
+
+  // ── ONCOLOGY PHASE 1: Somatic Cancer Foundation ──────────────────────────
+
+  async ingestTumorNormalPair(payload) {
+    const res = await fetch(`${API_BASE}/oncology/tumor-normal-ingest`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
+
+  async getTumorMutationalBurden(tumorSampleId) {
+    const res = await fetch(`${API_BASE}/oncology/tumor-mutational-burden/${encodeURIComponent(tumorSampleId)}`);
+    return res.json();
+  },
+
+  // ── ONCOLOGY PHASE 2: OncoCRISPR Allele-Specific Design ─────────────────
+
+  async designAlleleSpecificGuides(payload) {
+    const res = await fetch(`${API_BASE}/crispr/allele-specific-design`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
+
+  // ── ONCOLOGY PHASE 3: OncoViral Therapy Planner ──────────────────────────
+
+  async recommendViralChassis(payload) {
+    const res = await fetch(`${API_BASE}/oncolytic/recommend-chassis`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
+
+  async designViralBlueprint(payload) {
+    const res = await fetch(`${API_BASE}/oncolytic/design-blueprint`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
+
+  async getViralDatabase() {
+    const res = await fetch(`${API_BASE}/oncolytic/viral-database`);
+    return res.json();
   }
 };
