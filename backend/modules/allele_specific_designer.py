@@ -19,9 +19,12 @@ from typing import Dict, List, Optional, Tuple
 import re
 import math
 
+from modules.azimuth_cfd import score_azimuth_on_target, calculate_gc_content
+
 # Seed region positions (PAM-proximal, 1-indexed from PAM side)
-SEED_REGION_START = 14   # positions 14–20 are most sensitive to mismatches
+SEED_REGION_START = 14   # positions 14-20 are most sensitive to mismatches
 SEED_REGION_END = 20
+
 
 # Minimum acceptable discrimination ratio for clinical research use
 MIN_DISCRIMINATION_RATIO = 10.0
@@ -193,8 +196,9 @@ def design_allele_specific_guides(
                 guide_counter += 1
                 guide_id = f"ASG_{target_gene}_{target_mutation_name.replace(' ', '_')}_S1_{guide_counter:02d}"
                 # Near-perfect discrimination: wildtype has no PAM → ~0 cutting
-                mutant_eff = 0.75 + (hash(guide_seq) % 20) / 100  # 0.75–0.95 range
-                wildtype_eff = 0.02  # Essentially zero without PAM
+                # Use real Doench RS2 Azimuth scoring for mutant allele efficiency
+                mutant_eff, _, _ = score_azimuth_on_target(guide_seq, seq[pam_pos:pam_pos+3])
+                wildtype_eff = 0.02  # Biochemically ~0 without PAM (Cas9 requires NGG for R-loop)
                 mismatch_pos = None
                 strategy = "MUTATION_CREATED_PAM"
                 disc = score_allele_discrimination(mutant_eff, wildtype_eff, mismatch_pos, strategy)
@@ -249,8 +253,12 @@ def design_allele_specific_guides(
                 guide_counter += 1
                 guide_id = f"ASG_{target_gene}_{target_mutation_name.replace(' ', '_')}_S2_{guide_counter:02d}"
 
-                mutant_eff = 0.70 + (hash(guide_seq) % 15) / 100  # 0.70–0.85
-                wildtype_eff = mutant_eff * (1 - seed_penalty)
+                # Real Azimuth scoring for both alleles
+                mutant_eff, _, _ = score_azimuth_on_target(guide_seq, seq[pam_pos:pam_pos+3])
+                # Wildtype guide is scored separately (it has the reference base, not the mutation)
+                wt_eff_raw, _, _ = score_azimuth_on_target(wt_guide, seq[pam_pos:pam_pos+3])
+                # Apply thermodynamic seed mismatch penalty to wildtype
+                wildtype_eff = wt_eff_raw * (1 - seed_penalty)
 
                 strategy = "SEED_MISMATCH_ENGINEERING"
                 disc = score_allele_discrimination(mutant_eff, wildtype_eff, mismatch_pos, strategy)
