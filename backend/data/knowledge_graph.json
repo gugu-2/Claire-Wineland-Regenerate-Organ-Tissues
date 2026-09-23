@@ -1,0 +1,122 @@
+{
+  "entities": {
+    "genes": [
+      { "id": "GENE_CCR5", "symbol": "CCR5", "chromosome": "chr3", "locus": "3p21.31", "role": "Primary chemokine receptor used by R5-tropic HIV-1 strains for viral entry." },
+      { "id": "GENE_HBB", "symbol": "HBB", "chromosome": "chr11", "locus": "11p15.4", "role": "Adult hemoglobin beta subunit. Pathogenic mutations cause sickle cell anemia and beta-thalassemia." },
+      { "id": "GENE_BCL11A", "symbol": "BCL11A", "chromosome": "chr2", "locus": "2p16.1", "role": "Transcriptional repressor of gamma-globin (HBG1/2); targeted in Casgevy to reactivate fetal hemoglobin." },
+      { "id": "GENE_OCT4", "symbol": "POU5F1", "chromosome": "chr6", "locus": "6p21.33", "role": "Core master regulator of embryonic and induced pluripotency." },
+      { "id": "GENE_MYC", "symbol": "MYC", "chromosome": "chr8", "locus": "8q24.21", "role": "Proto-oncogene transcription factor; enhances reprogramming speed but poses severe oncogenic/tumorigenic risk." }
+    ],
+    "diseases": [
+      { "id": "DIS_HIV", "name": "HIV-1 Infection", "mesh_id": "D015658", "description": "Retroviral infection causing CD4+ T-cell depletion and progressive immunodeficiency." },
+      { "id": "DIS_SCD", "name": "Sickle Cell Disease", "mesh_id": "D000755", "description": "Autosomal recessive hemoglobinopathy caused by HbS Glu6Val mutation." },
+      { "id": "DIS_PD", "name": "Parkinson's Disease", "mesh_id": "D010300", "description": "Neurodegenerative disorder characterized by loss of A9 nigrostriatal dopaminergic neurons." }
+    ],
+    "interventions": [
+      { "id": "INT_CRISPR_CCR5", "name": "CRISPR-Cas9 CCR5 Disruption", "modality": "Ex-vivo RNP electroporation in CD34+ HSPCs or autologous CD4+ T-cells", "status": "Preclinical & Early Phase Clinical Trials" },
+      { "id": "INT_CASGEVY", "name": "Exagamglogene autotemcel (Casgevy)", "modality": "CRISPR-Cas9 editing of BCL11A erythroid enhancer in autologous CD34+ cells", "status": "FDA & EMA Approved Therapy" },
+      { "id": "INT_IPSC_CELLRX", "name": "Midbrain Floor Plate DA Progenitors", "modality": "Allogeneic or autologous iPSC-derived cell replacement", "status": "Phase 1/2 Clinical Trials (STEM-PD, BlueRock)" }
+    ]
+  },
+  "literature": [
+    {
+      "id": "LIT_001",
+      "pmid": "19213682",
+      "doi": "10.1056/NEJMoa0802905",
+      "title": "Long-Term Control of HIV by CCR5 Delta32/Delta32 Stem-Cell Transplantation",
+      "authors": "Hütter G, Nowak D, Mossner M, Ganepola S, Müßig A, Allers K, Schneider T, Hofmann J, Kücherer C, Blau O, Blau IW, Hofmann WK, Thiel E",
+      "journal": "New England Journal of Medicine",
+      "year": 2009,
+      "evidence_level": "Clinical Landmark (Case Report - The Berlin Patient)",
+      "summary": "First clinical proof of concept: Allogeneic stem cell transplantation from a homozygous CCR5-Δ32 donor achieved complete, sustained HIV-1 remission without antiretroviral therapy for over 12 years.",
+      "uncertainty": "Allogeneic HSCT with myeloablative conditioning carries ~20-30% mortality risk; not viable as a general cure for non-malignant HIV patients. Highlights need for targeted autologous ex-vivo editing.",
+      "related_genes": ["CCR5"],
+      "related_diseases": ["HIV-1 Infection"]
+    },
+    {
+      "id": "LIT_002",
+      "pmid": "30842636",
+      "doi": "10.1038/s41586-019-1027-4",
+      "title": "HIV-1 remission following CCR5Δ32/Δ32 haematopoietic stem-cell transplantation",
+      "authors": "Gupta RK, Abdul-jawad S, McCoy LE, Mok HP, Peppa D, Salgado M, Martinez-Picado J, Nijhuis M, Wensing AMJ, Lee H, et al.",
+      "journal": "Nature",
+      "year": 2019,
+      "evidence_level": "Clinical Landmark (Case Report - The London Patient)",
+      "summary": "Second documented case of sustained HIV-1 remission (The London Patient, Adam Castillejo) after reduced-intensity chemotherapy and CCR5-Δ32 donor HSCT, proving Berlin patient was not an anomaly.",
+      "uncertainty": "Confirms CCR5 as the primary therapeutic gate; also revealed risk of viral rebound if CXCR4-tropic viral quasispecies are present (co-receptor tropism switch).",
+      "related_genes": ["CCR5"],
+      "related_diseases": ["HIV-1 Infection"]
+    },
+    {
+      "id": "LIT_003",
+      "pmid": "31513413",
+      "doi": "10.1056/NEJMoa1817426",
+      "title": "CRISPR-Edited Stem Cells in a Patient with HIV and Acute Lymphocytic Leukemia",
+      "authors": "Xu L, Wang J, Liu Y, Xie L, Su B, Mou D, Wang L, He T, Wang X, Zhang F, et al.",
+      "journal": "New England Journal of Medicine",
+      "year": 2019,
+      "evidence_level": "Clinical Trial Phase 1",
+      "summary": "CRISPR-Cas9 was used to ablate CCR5 in CD34+ HSPCs followed by transplantation in a patient with HIV-1 and acute lymphoblastic leukemia. Edit was stable for >19 months without detectable off-target cuts.",
+      "uncertainty": "CCR5 editing efficiency in engrafted peripheral cells was only 5-8%, insufficient to completely eliminate viral load upon antiretroviral interruption. Proves safety but underscores need for higher on-target editing efficiency.",
+      "related_genes": ["CCR5"],
+      "related_diseases": ["HIV-1 Infection"]
+    },
+    {
+      "id": "LIT_004",
+      "pmid": "33283989",
+      "doi": "10.1056/NEJMoa2031054",
+      "title": "CRISPR-Cas9 Gene Editing for Sickle Cell Disease and beta-Thalassemia",
+      "authors": "Frangoul H, Altshuler D, Cappellini MD, Chen YS, Domm J, Eustace BK, Foell J, de la Fuente J, Grupp S, Handgretinger R, et al.",
+      "journal": "New England Journal of Medicine",
+      "year": 2021,
+      "evidence_level": "Pivotal Phase 1/2 Clinical Trial (CTX001 / Casgevy)",
+      "summary": "Targeted disruption of the erythroid-specific enhancer of BCL11A via Cas9 electroporation restored high-level fetal hemoglobin expression, eliminating vaso-occlusive crises in SCD and transfusion dependency in beta-thalassemia.",
+      "uncertainty": "Off-target cutting monitored via GUIDE-seq and deep sequencing showed no genotoxic translocation; long-term durability of clonal hematopoiesis requires multi-year surveillance.",
+      "related_genes": ["BCL11A", "HBB"],
+      "related_diseases": ["Sickle Cell Disease"]
+    },
+    {
+      "id": "LIT_005",
+      "pmid": "27014495",
+      "doi": "10.1038/nbt.3437",
+      "title": "Optimized sgRNA design to maximize activity and minimize off-target effects of CRISPR-Cas9",
+      "authors": "Doench JG, Fusi N, Sullender M, Hegde M, Vaimberg EW, Donovan KF, Smith I, Tothova Z, Wilen C, Orchard R, et al.",
+      "journal": "Nature Biotechnology",
+      "year": 2016,
+      "evidence_level": "Algorithm & Computational Benchmark (Rule Set 2 / Azimuth)",
+      "summary": "Developed predictive machine learning model (Rule Set 2) incorporating position-specific nucleotide preferences, GC content, and melting temperatures to score Cas9 on-target cleavage efficiency.",
+      "uncertainty": "Trained predominantly on standard human reference sequences in cell lines. Local SNPs in primary patient genomes can shift cleavage scores and invalidate generic predictions.",
+      "related_genes": ["CCR5", "HBB"],
+      "related_diseases": ["HIV-1 Infection", "Sickle Cell Disease"]
+    }
+  ],
+  "clinical_trials": [
+    {
+      "nct_id": "NCT03164135",
+      "title": "Safety and Feasibility of CRISPR-Edited CCR5-Modified CD34+ Cells for HIV-1/ALL",
+      "phase": "Phase 1",
+      "sponsor": "Peking University / Affiliated Hospital of Academy of Military Medical Sciences",
+      "status": "Active, Not Recruiting",
+      "primary_outcome": "Adverse event incidence and percentage of CCR5-ablated donor leukocytes",
+      "summary": "Demonstrated initial safety of ex-vivo CRISPR edited HSPC transplantation in humans."
+    },
+    {
+      "nct_id": "NCT03745287",
+      "title": "A Safety and Efficacy Study Evaluating CTX001 (Casgevy) in Severe Sickle Cell Disease",
+      "phase": "Phase 3 (Pivotal)",
+      "sponsor": "Vertex Pharmaceuticals / CRISPR Therapeutics",
+      "status": "Completed / Approved",
+      "primary_outcome": "Proportion of patients free from severe vaso-occlusive crises for >= 12 consecutive months",
+      "summary": "Pivotal trial resulting in the first FDA and EMA regulatory approvals for a CRISPR-based medicine."
+    },
+    {
+      "nct_id": "NCT04802733",
+      "title": "STEM-PD: Clinical Trial of hESC-derived Dopaminergic Progenitors in Parkinson's Disease",
+      "phase": "Phase 1/2a",
+      "sponsor": "Lund University / Cambridge University Hospitals",
+      "status": "Recruiting",
+      "primary_outcome": "Safety and tolerability of transplanted DA progenitors at 12 and 36 months",
+      "summary": "First-in-human European trial using surgically implanted dopamine neuron progenitors derived under non-integrative GMP protocols."
+    }
+  ]
+}

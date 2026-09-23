@@ -1,0 +1,101 @@
+[
+  {
+    "sample_id": "PATIENT_001_WT",
+    "donor_id": "D-8942",
+    "sample_type": "Primary CD4+ T-cells",
+    "target_gene": "CCR5",
+    "description": "Wildtype reference donor for CCR5 HIV resistance studies. Normal CCR5 expression, full susceptibility to R5-tropic HIV-1 strains.",
+    "clinical_status": "HIV-1 Negative, Candidacy Assessment",
+    "variants": [],
+    "consent_status": "Consented for Preclinical Research (IRB-2024-0412)",
+    "sequencing_depth": "45x WGS",
+    "alignment_reference": "GRCh38"
+  },
+  {
+    "sample_id": "PATIENT_002_CCR5_DELTA32_HET",
+    "donor_id": "D-9104",
+    "sample_type": "Peripheral Blood Mononuclear Cells (PBMC)",
+    "target_gene": "CCR5",
+    "description": "Heterozygous carrier of the protective CCR5-Δ32 allele (rs333). Exhibits ~50% reduced cell-surface CCR5 receptor density and slower disease progression.",
+    "clinical_status": "HIV-1 Positive (Slow Progressor)",
+    "variants": [
+      {
+        "chromosome": "chr3",
+        "position": 46373148,
+        "ref": "GAGTCATCTTGGGGCTGGTCCTGCCGCTGCTT",
+        "alt": "-",
+        "variant_type": "deletion",
+        "rsid": "rs333",
+        "zygosity": "heterozygous",
+        "clinical_significance": "Protective against HIV-1 infection and progression",
+        "allele_frequency_gnomad": 0.111,
+        "impact": "Frameshift leading to premature truncation (p.Leu185Glnfs*24)"
+      }
+    ],
+    "consent_status": "Consented for Preclinical Research (IRB-2024-0412)",
+    "sequencing_depth": "60x Targeted Panel",
+    "alignment_reference": "GRCh38"
+  },
+  {
+    "sample_id": "PATIENT_003_PAM_DISRUPTING_SNP",
+    "donor_id": "D-7731",
+    "sample_type": "CD34+ Hematopoietic Stem and Progenitor Cells (HSPCs)",
+    "target_gene": "CCR5",
+    "description": "Patient harboring a personal SNP chr3:46373140 C>T directly inside the seed region of the standard CCR5 sgRNA-1 target site. Demonstrates how individual genomic variation alters guide cleavage efficacy.",
+    "clinical_status": "HIV-1 Candidate for Ex-Vivo Cell Therapy",
+    "variants": [
+      {
+        "chromosome": "chr3",
+        "position": 46373140,
+        "ref": "C",
+        "alt": "T",
+        "variant_type": "SNV",
+        "rsid": "rs113010081",
+        "zygosity": "homozygous",
+        "clinical_significance": "Benign / Polymorphic in human populations",
+        "allele_frequency_gnomad": 0.042,
+        "impact": "Synonymous codon change in CCR5 coding exon 3; disrupts CRISPR SpCas9 seed pairing"
+      }
+    ],
+    "consent_status": "Consented for Gene Editing Research (IRB-2025-0109)",
+    "sequencing_depth": "52x WGS",
+    "alignment_reference": "GRCh38"
+  },
+  {
+    "sample_id": "PATIENT_004_SICKLE_CELL_HBS",
+    "donor_id": "D-6320",
+    "sample_type": "Mobilized CD34+ HSPCs",
+    "target_gene": "HBB",
+    "description": "Patient with Sickle Cell Disease (HbS), homozygous for the classical beta-globin Glu6Val missense mutation.",
+    "clinical_status": "Severe Vaso-occlusive Crises",
+    "variants": [
+      {
+        "chromosome": "chr11",
+        "position": 5227002,
+        "ref": "A",
+        "alt": "T",
+        "variant_type": "SNV",
+        "rsid": "rs334",
+        "zygosity": "homozygous",
+        "clinical_significance": "Pathogenic (Sickle Cell Anemia)",
+        "allele_frequency_gnomad": 0.021,
+        "impact": "Missense mutation p.Glu6Val; leads to HbS polymerization under hypoxia"
+      }
+    ],
+    "consent_status": "Consented for Gene Therapy Research Protocol (IRB-2024-0891)",
+    "sequencing_depth": "50x Targeted NGS",
+    "alignment_reference": "GRCh38"
+  },
+  {
+    "sample_id": "CELL_LINE_IPSC_FIBROBLAST",
+    "donor_id": "CL-408",
+    "sample_type": "Adult Dermal Fibroblasts",
+    "target_gene": "POU5F1",
+    "description": "Human adult primary dermal fibroblast line utilized as donor substrate for direct reprogramming to dopaminergic neural progenitors or cardiomyocytes.",
+    "clinical_status": "Research Substrate / In Vitro Cell Line",
+    "variants": [],
+    "consent_status": "Cell Repository Standard Research License",
+    "sequencing_depth": "38x WGS",
+    "alignment_reference": "GRCh38"
+  }
+]
