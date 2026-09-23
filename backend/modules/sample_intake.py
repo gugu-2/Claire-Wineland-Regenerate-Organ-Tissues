@@ -35,7 +35,9 @@ def parse_vcf_content(vcf_text: str) -> List[Dict]:
             rsid = parts[2] if parts[2] != "." else None
             ref = parts[3].upper()
             alt = parts[4].upper()
-            
+            # INFO field MUST be parsed before variant type detection (it's checked there)
+            info = parts[7] if len(parts) > 7 else ""
+
             # Determine variant type
             if alt == "-" or len(ref) > len(alt) or alt == "<DEL>" or "SVTYPE=DEL" in info:
                 v_type = "deletion"
@@ -50,7 +52,6 @@ def parse_vcf_content(vcf_text: str) -> List[Dict]:
             else:
                 v_type = "complex"
 
-            info = parts[7] if len(parts) > 7 else ""
             zygosity = "heterozygous"
             if len(parts) > 9:
                 gt = parts[9].split(":")[0]

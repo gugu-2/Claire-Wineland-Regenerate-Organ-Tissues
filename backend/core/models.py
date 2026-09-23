@@ -166,3 +166,55 @@ class ChatMessageModel(Base):
     content = Column(Text)
     citations_json = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class OffTargetScanModel(Base):
+    """
+    Persistent storage for Cas-OFFinder background scan jobs.
+    Replaces the in-memory OFF_TARGET_JOBS dict — survives server restarts.
+    """
+    __tablename__ = "offtarget_scans"
+
+    job_id = Column(String(64), primary_key=True, index=True)
+    status = Column(String(32), default="QUEUED")   # QUEUED | RUNNING | COMPLETED | FAILED
+    progress_pct = Column(Integer, default=0)
+    genome_build = Column(String(16), default="hg38")
+    sample_id = Column(String(64), nullable=True, index=True)
+    guide_ids_json = Column(Text, nullable=True)    # JSON list of guide IDs being scanned
+    results_json = Column(Text, nullable=True)      # JSON blob of completed results
+    error_message = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    completed_at = Column(DateTime, nullable=True)
+
+
+class ViralBlueprintModel(Base):
+    """Stores generated oncolytic virus engineering blueprints for audit and review."""
+    __tablename__ = "viral_blueprints"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tumor_sample_id = Column(String(64), ForeignKey("tumor_samples.tumor_sample_id"), nullable=True)
+    virus_id = Column(String(64))                   # e.g. "HSV1_T-VEC_family"
+    cancer_type = Column(String(128))
+    cytokine_payload = Column(String(64))           # e.g. "GM-CSF"
+    tumor_promoter = Column(String(64))             # e.g. "TERT_promoter"
+    bsl_level = Column(Integer)                     # 1, 2, or 3
+    ibc_approved = Column(Boolean, default=False)
+    blueprint_json = Column(Text, nullable=True)    # Full blueprint as JSON string
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class NeoantigenPredictionModel(Base):
+    """Stores neoantigen prediction results per tumor sample for vaccine design."""
+    __tablename__ = "neoantigen_predictions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tumor_sample_id = Column(String(64), ForeignKey("tumor_samples.tumor_sample_id"))
+    gene = Column(String(64))
+    amino_acid_change = Column(String(64))
+    mutant_peptide = Column(String(256))
+    predicted_ic50_nm = Column(Float)               # < 500 nM = strong binder
+    immunogenicity = Column(String(32))             # "HIGH", "MODERATE", "LOW"
+    vaccine_priority = Column(Integer)              # 1 = highest priority
+    hla_type = Column(String(64))
+    in_vaccine_design = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
