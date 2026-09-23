@@ -16,20 +16,25 @@ def test_gc_content():
     assert calculate_gc_content("GCAT") == 50.0
 
 def test_azimuth_scoring_features():
-    # Canonical favorable guide: starts with G, ends with G, balanced GC
+    # Real Doench RS2: favorable guide starts with G, ends with G, balanced GC
     score_good, ci_good, breakdown_good = score_azimuth_on_target("GACCGTGATCGATCGATCCG")
-    assert 0.60 <= score_good <= 0.98
+    assert 0.40 <= score_good <= 0.98
     assert ci_good[0] <= score_good <= ci_good[1]
-    assert breakdown_good["mono_nucleotide_preference"] > 0
+    # Real RS2 breakdown keys
+    assert "single_nucleotide" in breakdown_good
+    assert "dinucleotide" in breakdown_good
+    assert "thermodynamic_seed" in breakdown_good
+    assert breakdown_good["scoring_method"] == "Doench Rule Set 2 (Azimuth 2.0)"
+    assert "gc_content_pct" in breakdown_good
 
-    # Guide with poly-T terminator (TTTT): U6 transcription halts
+    # Guide with poly-T terminator (TTTT): U6 transcription halts — score should drop
     score_poly_t, _, breakdown_bad = score_azimuth_on_target("GACGTTTTAAGCTAGCTAAG")
     assert score_poly_t < score_good
     assert breakdown_bad["poly_t_penalty"] <= -0.35
 
     # Guide with G-quadruplex (GGGG)
     _, _, breakdown_g4 = score_azimuth_on_target("GACGGGGATCGATCGATCCG")
-    assert breakdown_g4["g4_penalty"] == -0.15
+    assert breakdown_g4["g4_penalty"] == -0.17
 
 def test_doench_cfd_empirical_matrix():
     guide = "GATAGTCATCTTGGGGCTGG"
