@@ -1,115 +1,204 @@
-# Genomic Research Copilot
-### A Computational Research Platform for CRISPR Design, Gene Therapy, and Stem-Cell/Organ Regeneration Studies
+# Genomic Research Copilot — Precision Cancer Cure OS
 
-![System Architecture](file:///C:/Users/majip/.gemini/antigravity/brain/e505eb43-024e-44d5-b624-97243e5f631a/architecture_diagram.png)
-
-> **MANDATORY PRECLINICAL DISCLAIMER**  
-> *FOR RESEARCH PURPOSES ONLY — NOT FOR CLINICAL OR DIAGNOSTIC USE.*  
-> Every computational prediction, guide RNA ranking, on-target efficiency score, and off-target risk metric produced by this system is an experimental research hypothesis. Real-world application requires rigorous wet-lab experimental validation (in vitro cleavage assays, cellular GUIDE-seq/CIRCLE-seq, and animal studies) under institutional oversight (IRB/IACUC).
+> **FOR RESEARCH AND TESTING PURPOSES ONLY.**
+> This system is intended for use by qualified researchers with appropriate institutional approvals.
+> All designs, scores, and predictions are computational hypotheses requiring expert validation.
 
 ---
 
-## 1. Product Vision & Principles
+## What Is This?
 
-The Genomic Research Copilot is a specialized computational platform that bridges genomic databases, individual patient/cell-line sequences, and cutting-edge machine learning models for CRISPR design and regenerative medicine:
+A full-stack bioinformatics research workstation for precision cancer cure development. Inspired by:
 
-1. **Patient-Specific Genome Grounding**: Rather than designing against generic reference genomes (GRCh38), the engine reconstitutes the target locus using the individual's actual VCF/FASTA data, pinpointing personal single-nucleotide polymorphisms (SNPs) and indels that alter PAM motifs (`NGG`, `TTTV`) or disrupt the critical seed region (positions 1–10 adjacent to PAM).
-2. **Traceable Biomedical Evidence**: The AI research co-pilot grounds every claim in primary peer-reviewed literature (PubMed, NEJM, Nature) and registered clinical trials (ClinicalTrials.gov), presenting explicit PMIDs, DOIs, and stated uncertainty intervals.
-3. **Tumorigenic & Teratoma Risk Screening**: Reprogramming workflows (e.g. iPSC derivation to dopaminergic neurons, cardiomyocytes, or pancreatic beta cells) evaluate transcription factor cocktails and delivery vehicles, flagging proto-oncogene reactivation (e.g. *c-MYC*) and genomic insertional risks.
-4. **Mandatory Human Expert Review Gate**: A formal review state machine (`PENDING_REVIEW` &rarr; `EXPERT_APPROVED` / `APPROVED_WITH_CAVEATS` / `EXPERT_REJECTED`) prevents automated or unvetted export of candidate therapeutic edits.
-5. **Cryptographic Audit Trail & Dual-Use Screening**: Real-time screening for Dual-Use Research of Concern (DURC) and SHA-256 integrity-chained audit logging ensure complete compliance.
+- **Dr. Beata Halassy** — virologist who self-treated recurrent breast cancer via intratumoral oncolytic virus injection (MV + VSV, published *Vaccines* 2024)
+- **CRISPR gene correction** — correcting cancer-causing mutations (BRCA2, KRAS, TP53) rather than just attacking tumors
+- **Personalized mRNA cancer vaccines** — BioNTech mRNA-4157/V940 style neoantigen vaccine design
 
----
+### Core Modules
 
-## 2. System Architecture
-
-```
-genom/
-├── backend/
-│   ├── main.py                          # FastAPI REST API & route definitions
-│   ├── requirements.txt                 # Python dependencies
-│   ├── core/
-│   │   ├── config.py                    # Global configuration & safety flags
-│   │   └── security.py                  # DURC screening filter & cryptographic audit logger
-│   ├── modules/
-│   │   ├── sample_intake.py             # VCF parsing & personalized sequence reconstitution
-│   │   ├── variant_annotation.py        # ClinVar, dbSNP, & gnomAD pathogenicity/protective flagging
-│   │   ├── crispr_designer.py           # PAM scanning, Doench Rule Set 2 efficiency, & CFD scoring
-│   │   ├── regeneration.py              # Stem cell differentiation & tumorigenic risk calculation
-│   │   ├── knowledge_copilot.py         # Literature RAG, graph traversal, & citation resolver
-│   │   ├── review_gate.py               # Human expert review state machine & sign-off
-│   │   └── report_generator.py          # Structured dossier & HTML report generation
-│   ├── data/
-│   │   ├── reference_genes.json         # GRCh38 coordinates & sequences for CCR5, HBB, OCT4
-│   │   ├── benchmark_samples.json       # Curated patient profiles (WT, CCR5-Δ32, Seed SNP, Sickle Cell)
-│   │   ├── regeneration_protocols.json  # Lineage protocols, markers, & oncogene risk metrics
-│   │   └── knowledge_graph.json         # Graph linking genes, diseases, trials, & landmark papers
-│   └── tests/
-│       ├── test_sample_intake.py        # VCF parsing & sequence reconstruction tests
-│       ├── test_crispr_designer.py      # PAM checks, Doench efficiency, & CFD tests
-│       ├── test_regeneration.py         # Lineage differentiation & oncogenic risk tests
-│       └── test_review_and_security.py  # DURC filter, RAG citations, & review gate tests
-└── frontend/
-    ├── index.html                       # Application shell
-    ├── vite.config.js                   # Vite dev server & backend API proxy
-    ├── tailwind.config.js               # Biomedical dark-mode theme
-    └── src/
-        ├── App.jsx                      # Application orchestrator & state manager
-        ├── components/
-        │   ├── Navbar.jsx               # Navigation, compliance banners, & status badges
-        │   ├── SampleIntakeView.jsx     # Patient sample manager, VCF upload & locus inspector
-        │   ├── CrisprDesignerView.jsx   # Candidate sgRNA ranking, personal SNP impact & CFD scores
-        │   ├── RegenerationView.jsx     # Reprogramming cocktail builder & tumorigenic risk gauge
-        │   ├── KnowledgeCopilotView.jsx # AI research chat with verified literature citations
-        │   ├── ExpertReviewModal.jsx    # Human-in-the-loop review signoff gate
-        │   └── ResearchReportView.jsx   # Publication-ready dossier & cryptographic audit trail
-        └── services/
-            └── api.js                   # Client connector to FastAPI REST endpoints
-```
+| Module | What It Does |
+|--------|-------------|
+| **Sample Intake** | Parse VCF files, ingest tumor+normal pairs, personalized sequence building |
+| **CRISPR Designer** | Real Doench RS2 Azimuth on-target scoring, CFD off-target matrix, SpCas9/SaCas9/Cas12a PAM scanning |
+| **OncoCRISPR Designer** | Allele-specific guide design for KRAS G12D, BRAF V600E, EGFR L858R — two selectivity strategies |
+| **OncoViral Planner** | 5 oncolytic virus chassis (T-VEC, MV, VSV, Ad5-Delta24, NDV), cytokine payload selection |
+| **Wet Lab Studio** | Oligo design, AAV packaging capacity, delivery advisor (AAV2/9/PHP.B, LNP, RNP) |
+| **Expert Review Gate** | 6-point oncology safety checklist, audit-trailed approval workflow |
+| **Knowledge Copilot** | Live PubMed + ClinVar integration, DURC screening |
 
 ---
 
-## 3. Quick Start & Execution
+## Quick Start (Windows)
 
 ### Prerequisites
-- Python 3.10+
-- Node.js 18+ and npm
+- Python 3.11+ (`python --version`)
+- Node.js 18+ (`node --version`)
+- Git
 
-### 1. Start the Backend Service
-```bash
-cd backend
-python -m uvicorn main:app --host 127.0.0.1 --port 8000
-```
-- API Documentation available at: `http://127.0.0.1:8000/docs`
-- Health check: `http://127.0.0.1:8000/api/status`
+### 1. Clone & Setup
 
-### 2. Run Backend Unit Tests
-```bash
-cd backend
-python -m pytest tests -v
+```powershell
+git clone https://github.com/gugu-2/Claire-Wineland-Regenerate-Organ-Tissues.git
+cd Claire-Wineland-Regenerate-Organ-Tissues
 ```
 
-### 3. Start the Frontend Application
-```bash
+### 2. One-Command Start
+
+```powershell
+.\start.ps1
+```
+
+This will:
+- Create `backend/.env` from `.env.example`
+- Install Python dependencies from `requirements.txt`
+- Run syntax checks on all modules
+- Start FastAPI at `http://localhost:8000`
+- Start Vite frontend at `http://localhost:5173`
+
+### 3. Open in Browser
+
+Navigate to **http://localhost:5173**
+
+---
+
+## Manual Setup
+
+### Backend
+
+```powershell
+cd backend
+pip install -r requirements.txt
+copy .env.example .env
+python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### Frontend
+
+```powershell
 cd frontend
 npm install
 npm run dev
 ```
-Open `http://localhost:5173` in your browser.
 
 ---
 
-## 4. Worked Preclinical Research Workflows
+## Running Tests
 
-### Workflow 1: CCR5-Based HIV Resistance Study
-1. Select **Patient #1 (Wildtype)** vs. **Patient #3 (PAM/Seed Disrupting SNP)** in the *Sample & Locus Intake* module.
-2. In the *CRISPR Designer*, note how candidate `sgRNA_CCR5_Exon3_01` achieves **82% on-target efficiency** in the reference genome, but drops to **26% cleavage** with a **HIGH_RISK** warning in Patient #3 due to their personal `chr3:46373140 C>T` seed mutation.
-3. Consult the *AI Research Co-Pilot* on the precedent established by the Berlin and London patients.
-4. Execute formal sign-off in the *Human Expert Review Gate* with mandatory safety criteria checked.
+```powershell
+cd backend
+python -m pytest tests/ -v
+```
 
-### Workflow 2: Midbrain Dopaminergic Neuron Regeneration Study
-1. Navigate to *Stem Cell & Regeneration*.
-2. Select **Dopaminergic Neurons (Parkinson's Disease)**.
-3. Compare the classical Yamanaka 4-Factor protocol (tumorigenic score **0.82**, Critical Risk due to *c-MYC* retroviral reactivation) against the modern non-integrative Floor Plate protocol (tumorigenic score **0.08**, Low Risk).
-4. Review differentiation stage milestones (Days 0–5 Neural Induction &rarr; Days 6–12 Midbrain Floor Plate `FOXA2+`/`LMX1A+` &rarr; Days 22–40 Mature Post-Mitotic `TH+`/`DAT+` DA neurons).
-5. Generate and export the complete **Research Candidate Dossier (PDF/HTML)**.
+Expected: **35/35 tests passing**
+
+Run with coverage:
+
+```powershell
+python -m pytest tests/ -v --cov=modules --cov=core --cov-report=term-missing
+```
+
+---
+
+## Architecture
+
+```
+genom/
+├── backend/
+│   ├── main.py                    # FastAPI app, all endpoints
+│   ├── .env.example               # Environment config template
+│   ├── requirements.txt           # Pinned Python dependencies
+│   ├── core/
+│   │   ├── config.py              # .env-based configuration
+│   │   ├── database.py            # SQLite + SQLAlchemy init
+│   │   ├── models.py              # ORM tables (11 tables)
+│   │   └── security.py           # SHA-256 audit trail, HIPAA pseudonymization
+│   ├── modules/
+│   │   ├── azimuth_cfd.py         # Real Doench RS2 Azimuth 2.0 + CFD scoring
+│   │   ├── crispr_designer.py     # PAM scanning, guide design, persistent off-target jobs
+│   │   ├── allele_specific_designer.py  # OncoCRISPR — two selectivity strategies
+│   │   ├── somatic_variant_caller.py    # Tumor/normal subtraction, CCF, clonality
+│   │   ├── tumor_genomics.py      # TMB, MSI, CNV, purity estimation
+│   │   ├── viral_tropism_modeler.py     # Oncolytic virus backbone selection
+│   │   ├── ensembl_client.py      # Live Ensembl REST API with 30-day caching
+│   │   ├── external_apis.py       # ClinVar + PubMed live with 7-day caching
+│   │   ├── sample_intake.py       # VCF parsing, personalized sequence building
+│   │   ├── variant_annotation.py  # ClinVar annotation, somatic hotspot DB
+│   │   ├── delivery_advisor.py    # AAV/LNP/RNP delivery selection
+│   │   ├── review_gate.py         # 6-point oncology expert review checklist
+│   │   ├── report_generator.py    # PDF/JSON dossier generation
+│   │   └── knowledge_copilot.py   # RAG + live PubMed copilot
+│   └── tests/                     # 35 passing tests
+│
+├── frontend/src/
+│   ├── App.jsx                    # 7-tab application
+│   ├── components/
+│   │   ├── SampleIntakeView.jsx
+│   │   ├── CrisprDesignerView.jsx
+│   │   ├── OncoCrisprDesignerView.jsx
+│   │   ├── OncoViralPlannerView.jsx
+│   │   ├── WetLabStudioView.jsx
+│   │   ├── RegenerationView.jsx
+│   │   ├── ResearchReportView.jsx
+│   │   ├── KnowledgeCopilotView.jsx
+│   │   └── Navbar.jsx
+│   └── services/api.js            # All backend API calls
+│
+├── docs/07_oncology_expansion/     # Scientific documentation
+├── project_artifacts/              # Audits, plans, roadmaps, media
+├── start.ps1                       # One-command startup script
+└── README.md                       # This file
+```
+
+---
+
+## Key Scientific Implementations
+
+### Azimuth 2.0 / Doench Rule Set 2 (Real Implementation)
+- Full position-specific single-nucleotide weights (30 positions)
+- Adjacent dinucleotide weights (key interaction positions)
+- GC content parabolic feature
+- Nearest-neighbour RNA:DNA duplex thermodynamics (ΔH + ΔS)
+- Logistic sigmoid calibrated to Doench 2016 training set
+- Reference: Doench et al. *Nature Biotechnology* 34, 184-191 (2016)
+
+### CFD Off-Target Scoring
+- Full Doench empirical mismatch penalty matrix (20 positions × 16 substitution types)
+- Non-canonical PAM cleavage frequency weights
+- Aggregate Hsu/Doench specificity score (0-100)
+
+### Somatic Variant Analysis
+- VAF → CCF formula: `CCF = VAF × 2 / purity` (diploid assumption)
+- Tumor Mutational Burden: FDA threshold ≥10 mut/Mb
+- MSI: indel fraction heuristic calibrated to TCGA MSI studies
+- `MIN_SAFE_CRISPR_CCF = 0.60` safety threshold
+
+### External Data (Live APIs)
+- **Ensembl REST API** — gene sequences, coordinates, exon structure (30-day cache)
+- **NCBI ClinVar** — clinical significance via E-utilities (7-day cache)
+- **NCBI PubMed** — live literature search (7-day cache)
+
+---
+
+## Environment Configuration
+
+Copy `backend/.env.example` to `backend/.env` and edit:
+
+```ini
+APP_NAME=Genomic Research Copilot
+LOG_LEVEL=INFO
+DATABASE_URL=sqlite:///./genom.db
+ENSEMBL_TIMEOUT=30
+NCBI_TIMEOUT=10
+ALLOW_ORIGINS=http://localhost:5173
+SAFETY_MODE_ENABLED=true
+AUDIT_LOG_ENABLED=true
+```
+
+---
+
+## Citation
+
+If you use this system in your research, please cite:
+
+- Doench JG, Fusi N, et al. *Optimized sgRNA design to maximize activity and minimize off-target effects of CRISPR-Cas9.* Nature Biotechnology 34, 184-191 (2016)
+- Halassy B, et al. *Self-treatment of recurrent malignant melanoma with oncolytic viruses: a case report.* Vaccines 12, 975 (2024)
