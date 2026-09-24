@@ -210,5 +210,57 @@ export const api = {
   async getViralDatabase() {
     const res = await fetch(`${API_BASE}/oncolytic/viral-database`);
     return res.json();
+  },
+
+  // ART (Array-Associated Reverse Transcriptase) — Yoon et al. 2026
+  async getArtReference() {
+    const res = await fetch(`${API_BASE}/aart/reference`);
+    return res.json();
+  },
+
+  async artScanArray(sequence, minCopies = 3, maxMismatches = 2) {
+    const res = await fetch(`${API_BASE}/aart/scan-array`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sequence, min_copies: minCopies, max_mismatches: maxMismatches })
+    });
+    return res.json();
+  },
+
+  async artPredictRnaStructure(repeatUnitDna) {
+    const res = await fetch(`${API_BASE}/aart/predict-rna-structure`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ repeat_unit_dna: repeatUnitDna })
+    });
+    return res.json();
+  },
+
+  async artAnalyzeLocus(upstreamSeq, rtProteinSeq = null, downstreamAnnotation = null, genomeSource = null) {
+    const res = await fetch(`${API_BASE}/aart/analyze-locus`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        upstream_sequence: upstreamSeq,
+        rt_protein_sequence: rtProteinSeq,
+        downstream_gene_annotation: downstreamAnnotation,
+        genome_source: genomeSource
+      })
+    });
+    return res.json();
+  },
+
+  async artTherapeuticPotential(targetGene, editType = 'insertion', deliverySystem = 'lentiviral', cancerContext = null) {
+    const res = await fetch(`${API_BASE}/aart/therapeutic-potential`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        target_gene: targetGene,
+        edit_type: editType,
+        delivery_system: deliverySystem,
+        cancer_context: cancerContext
+      })
+    });
+    return res.json();
   }
 };

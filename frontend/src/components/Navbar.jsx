@@ -10,6 +10,7 @@ export default function Navbar({ activeTab, setActiveTab, selectedSample, status
     { id: 'report', label: '5. Research Dossier & Audit', icon: ShieldCheck },
     { id: 'onco-crispr', label: '6. OncoCRISPR Designer', icon: Target, oncology: true },
     { id: 'onco-viral', label: '7. OncoViral Therapy Planner', icon: Dna, oncology: true },
+    { id: 'art-research', label: '8. ART Research', icon: Dna, art: true },
   ];
 
   return (
@@ -112,17 +113,24 @@ export default function Navbar({ activeTab, setActiveTab, selectedSample, status
                 className={`flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-medium rounded-t-lg transition-all border-b-2 whitespace-nowrap ${
                   isActive && isOncology
                     ? 'border-rose-400 text-rose-300 bg-rose-950/20'
+                    : isActive && tab.art
+                    ? 'border-violet-400 text-violet-300 bg-violet-950/20'
                     : isActive
                     ? 'border-cyan-400 text-cyan-400 bg-cyan-950/20'
                     : isOncology
                     ? 'border-transparent text-rose-500 hover:text-rose-300 hover:bg-rose-950/20'
+                    : tab.art
+                    ? 'border-transparent text-violet-500 hover:text-violet-300 hover:bg-violet-950/20'
                     : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900/40'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive && isOncology ? 'text-rose-400' : isActive ? 'text-cyan-400' : isOncology ? 'text-rose-600' : 'text-slate-500'}`} />
+                <Icon className={`w-4 h-4 ${isActive && isOncology ? 'text-rose-400' : isActive && tab.art ? 'text-violet-400' : isActive ? 'text-cyan-400' : isOncology ? 'text-rose-600' : tab.art ? 'text-violet-600' : 'text-slate-500'}`} />
                 {tab.label}
                 {isOncology && (
                   <span className="text-[9px] px-1 py-0.5 bg-rose-950 border border-rose-800 text-rose-400 rounded font-bold leading-none">ONCO</span>
+                )}
+                {tab.art && (
+                  <span className="text-[9px] px-1 py-0.5 bg-violet-950 border border-violet-800 text-violet-400 rounded font-bold leading-none">NEW</span>
                 )}
               </button>
             );
