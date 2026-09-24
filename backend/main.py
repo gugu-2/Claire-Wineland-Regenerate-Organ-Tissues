@@ -36,6 +36,15 @@ from modules.oligo_synthesizer import generate_cloning_oligos
 from modules.delivery_advisor import evaluate_delivery_strategy
 from modules.dual_guide_designer import design_dual_guide_pairs
 from modules.cohort_analyzer import generate_cohort_comparison_matrix
+from modules.aart_modeler import (
+    scan_for_art_repeat_arrays,
+    predict_art_repeat_rna_structure,
+    analyze_genomic_locus_for_art,
+    evaluate_art_therapeutic_potential,
+    ART_VS_CRISPR_COMPARISON,
+    ART_PARTNER_TYPES,
+    ART_RT_FEATURES,
+)
 
 app = FastAPI(
     title=APP_NAME,
@@ -797,6 +806,165 @@ def get_viral_database():
         "cytokine_payloads": list(CYTOKINE_PAYLOADS.values()),
         "tumor_specific_promoters": list(TUMOR_SPECIFIC_PROMOTERS.values()),
         "total_backbones": len(ONCOLYTIC_VIRUS_BACKBONES),
+    }
+
+
+
+# ============================================================================
+# AART (Array-Associated Reverse Transcriptase) Endpoints — Yoon et al. 2026
+# ============================================================================
+
+class ARTArrayScanRequest(BaseModel):
+    sequence: str
+    min_copies: Optional[int] = 3
+    max_mismatches: Optional[int] = 2
+    unit_size: Optional[int] = 200
+
+class ARTLocusRequest(BaseModel):
+    upstream_sequence: str
+    rt_protein_sequence: Optional[str] = None
+    downstream_gene_annotation: Optional[str] = None
+    genome_source: Optional[str] = None
+
+class ARTTherapeuticRequest(BaseModel):
+    target_gene: str
+    edit_type: Optional[str] = "insertion"
+    delivery_system: Optional[str] = "lentiviral"
+    cancer_context: Optional[str] = None
+
+class ARTRNAStructureRequest(BaseModel):
+    repeat_unit_dna: str
+
+
+@app.post("/aart/scan-array")
+def api_art_scan_array(req: ARTArrayScanRequest):
+    """
+    Scans a DNA sequence for ART-like tandem repeat arrays.
+
+    ART arrays (discovered by Claude AI agents, Yoon et al. 2026) consist of
+    ~200-nt units with a conserved ~16-17 nt repeat core containing an inverted
+    palindrome. The array is transcribed into discrete abundant short ncRNAs
+    during phage infection (up to 8% of all phage transcripts).
+    """
+    if len(req.sequence) < 50:
+        raise HTTPException(400, "Sequence too short — ART arrays require at least 50 nt")
+    if len(req.sequence) > 500_000:
+        raise HTTPException(400, "Sequence too large (max 500 kb per scan)")
+    return scan_for_art_repeat_arrays(
+        sequence=req.sequence,
+        min_copies=req.min_copies,
+        max_mismatches=req.max_mismatches,
+        unit_size=req.unit_size,
+    )
+
+
+@app.post("/aart/predict-rna-structure")
+def api_art_rna_structure(req: ARTRNAStructureRequest):
+    """
+    Predicts whether a given ART repeat unit will form a stable RNA hairpin
+    when transcribed. ART repeat cores contain inverted palindromes that form
+    stem-loop structures in the processed ncRNAs (analogous to CRISPR repeat
+    stem-loops and retron msr ncRNA hairpins).
+    """
+    if len(req.repeat_unit_dna) < 20:
+        raise HTTPException(400, "Repeat unit too short (min 20 nt)")
+    if len(req.repeat_unit_dna) > 500:
+        raise HTTPException(400, "Repeat unit too long (max 500 nt)")
+    return predict_art_repeat_rna_structure(req.repeat_unit_dna)
+
+
+@app.post("/aart/analyze-locus")
+def api_art_analyze_locus(req: ARTLocusRequest):
+    """
+    Analyzes a genomic locus to determine if it contains an ART system.
+
+    ART hallmarks (Yoon et al. 2026):
+      1. Tandem repeat array upstream of RT (most diagnostic)
+      2. RT with unusually long N-terminal domain (>100 aa before YxDD motif)
+      3. Dedicated partner gene downstream (GNAT Type I, helical Type II/III)
+      4. Jumbo bacteriophage genomic context
+    """
+    if not req.upstream_sequence:
+        raise HTTPException(400, "upstream_sequence is required")
+    return analyze_genomic_locus_for_art(
+        upstream_sequence=req.upstream_sequence,
+        rt_protein_sequence=req.rt_protein_sequence,
+        downstream_gene_annotation=req.downstream_gene_annotation,
+        genome_source=req.genome_source,
+    )
+
+
+@app.post("/aart/therapeutic-potential")
+def api_art_therapeutic_potential(req: ARTTherapeuticRequest):
+    """
+    Evaluates the speculative therapeutic potential of ART as a genome-editing tool.
+
+    IMPORTANT: ART's function is completely unknown as of September 2026.
+    All therapeutic potential assessments are RESEARCH HYPOTHESES only.
+    Technology Readiness Level: TRL 1 (basic principles observed).
+    """
+    return evaluate_art_therapeutic_potential(
+        target_gene=req.target_gene,
+        edit_type=req.edit_type,
+        delivery_system=req.delivery_system,
+        cancer_context=req.cancer_context,
+    )
+
+
+@app.get("/aart/reference")
+def api_art_reference():
+    """
+    Returns the complete ART (Array-Associated Reverse Transcriptase) knowledge base
+    from Yoon et al. 2026: partner types, RT features, and CRISPR comparison.
+    """
+    return {
+        "system_name": "Array-Associated Reverse Transcriptases (ART)",
+        "discovery": {
+            "paper": "Yoon PH et al. (2026) Autonomous AI agents discover reverse transcriptases with tandem repeat arrays",
+            "authors": ["Peter H. Yoon", "Januka S. Athukoralage", "Emmanuel Ameisen", "Eric Kauderer-Abrams", "Nicholas T. Perry", "Matthew G. Durrant"],
+            "institution": "Anthropic Life Sciences Research Group",
+            "discovery_method": "Autonomous genome mining by Claude AI agents over 21.5 hours, 949 agent sessions, 215.6M tokens",
+            "preprint_url": "https://www-cdn.anthropic.com/22573675ada52a8ca8a97a1a4b4326b2f208a071.pdf",
+            "blog_post": "https://www.anthropic.com/news/claude-discovers-novel-enzyme-system",
+            "date": "September 23, 2026",
+        },
+        "system_components": {
+            "1_repeat_array": {
+                "description": "Tandem ncDNA repeat array upstream of RT",
+                "unit_size_nt": "~200",
+                "repeat_core_length_nt": "16-17",
+                "repeat_core_feature": "Inverted palindrome (forms RNA hairpin when transcribed)",
+                "n_copies_typical": "5-14+",
+                "expression": "Highly expressed during phage infection (up to 8% of phage transcripts at 15 min)",
+                "processed_products": "Discrete short ncRNAs with reproducible boundaries",
+            },
+            "2_rt_enzyme": {
+                "description": "Reverse transcriptase with unusually long N-terminal domain",
+                "ntd_length_aa": "~180 (vs. <50 in most other RTs)",
+                "catalytic_motif": "YxDD (retained in all 93 characterized members)",
+                "phylogeny": "Sister clade to retrons",
+                "structural_homologs": ["Retron Ec86 (PDB: 7V9X)", "DGR BPP-1 (PDB: 8UBE)"],
+                "ntd_fold": "Unknown — no match in Foldseek structural database",
+                "ntd_variability": "Highest divergence region of the family",
+            },
+            "3_partner_protein": {
+                "description": "Dedicated partner gene directly downstream of RT",
+                "types": ART_PARTNER_TYPES,
+            },
+        },
+        "rt_features": ART_RT_FEATURES,
+        "vs_crispr": ART_VS_CRISPR_COMPARISON,
+        "current_status": (
+            "OPEN QUESTION: The molecular function of ART is not yet known. "
+            "Experiments are underway to determine: (1) whether the RT uses array ncRNAs as templates, "
+            "(2) what the partner protein does biochemically, and (3) what biological process ART controls "
+            "in jumbo phage infection."
+        ),
+        "therapeutic_outlook": (
+            "TRL 1 (basic principles observed). If confirmed as a programmable RNA-directed DNA writer, "
+            "ART could complement prime editing and retron-based tools. Type I partner GNAT fold may "
+            "enable epigenome editing. 10-15+ year horizon for any therapeutic application."
+        ),
     }
 
 
