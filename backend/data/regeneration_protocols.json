@@ -1,0 +1,130 @@
+[
+  {
+    "protocol_id": "PROTO_NEURO_DA_01",
+    "target_lineage": "Dopaminergic Neurons",
+    "clinical_indication": "Parkinson's Disease / Midbrain Dopamine Loss",
+    "starting_cell_type": "Human Induced Pluripotent Stem Cells (iPSCs) or Dermal Fibroblasts",
+    "approach": "Direct Lineage Reprogramming vs. Directed Floor Plate Differentiation",
+    "transcription_factors": [
+      { "symbol": "ASCL1", "role": "Pioneer proneural basic helix-loop-helix factor", "oncogenic_risk": "low" },
+      { "symbol": "NURR1", "role": "Nuclear receptor essential for midbrain DA neuron development", "oncogenic_risk": "low" },
+      { "symbol": "LMX1A", "role": "LIM homeodomain factor specifying floor plate identity", "oncogenic_risk": "low" },
+      { "symbol": "PITX3", "role": "Substantia nigra compacta DA survival and specification", "oncogenic_risk": "none" }
+    ],
+    "reprogramming_cocktails": [
+      {
+        "cocktail_name": "Non-Integrative Floor Plate Direct Differentiation (Kriks/Studer Protocol)",
+        "delivery_method": "Recombinant Small Molecules + Growth Factors (Dual SMAD + WNT activation)",
+        "factors": ["LDN193189", "SB431542", "CHIR99021", "SHH (Sonic Hedgehog)", "FGF8"],
+        "tumorigenic_risk_score": 0.08,
+        "risk_level": "LOW",
+        "teratoma_risk": "Extremely Low (residual pluripotency purged via magnetic cell sorting for NCAM/CORIN)",
+        "oncogene_reactivation": "None (no c-MYC or integrative vectors)",
+        "recommended": true,
+        "notes": "Gold standard for Parkinson's cell therapy trials (e.g., STEM-PD, BlueRock MSK-DA01)."
+      },
+      {
+        "cocktail_name": "Lentiviral Direct Reprogramming (ASCL1 + NURR1 + LMX1A)",
+        "delivery_method": "Integrative Lentivirus",
+        "factors": ["ASCL1", "NURR1", "LMX1A"],
+        "tumorigenic_risk_score": 0.45,
+        "risk_level": "MEDIUM",
+        "teratoma_risk": "Low (avoids pluripotent intermediate)",
+        "oncogene_reactivation": "Insertional mutagenesis risk at random integration sites",
+        "recommended": false,
+        "notes": "Requires viral vector copy number monitoring; potential disruption of host tumor suppressor loci."
+      },
+      {
+        "cocktail_name": "Classical 4-Factor iPSC Derivation (Yamanaka Factors) followed by differentiation",
+        "delivery_method": "Retroviral OSKM (Oct4, Sox2, Klf4, c-Myc)",
+        "factors": ["OCT4", "SOX2", "KLF4", "c-MYC"],
+        "tumorigenic_risk_score": 0.82,
+        "risk_level": "HIGH",
+        "teratoma_risk": "High if undifferentiated iPSCs persist in graft",
+        "oncogene_reactivation": "High - c-MYC retroviral reactivation triggers secondary malignancies in animal models",
+        "recommended": false,
+        "notes": "Historical protocol; prohibited in modern human clinical trial candidates without replacement of c-Myc."
+      }
+    ],
+    "differentiation_timeline": [
+      { "day_range": "Days 0-5", "stage": "Neural Induction", "key_markers": ["OTX2+", "PAX6- (Floor Plate)", "SOX1+"], "critical_qc": "Confirmation of dual SMAD inhibition" },
+      { "day_range": "Days 6-12", "stage": "Midbrain Floor Plate Specification", "key_markers": ["FOXA2+", "LMX1A+", "CORIN+"], "critical_qc": "FACS purity screening >80% FOXA2/LMX1A double-positive" },
+      { "day_range": "Days 13-21", "stage": "Dopaminergic Progenitor Maturation", "key_markers": ["EN1+", "PITX3+", "NURR1+"], "critical_qc": "Cryopreservation window for transplantation" },
+      { "day_range": "Days 22-40", "stage": "Post-Mitotic Dopaminergic Neurons", "key_markers": ["TH (Tyrosine Hydroxylase)+", "DAT (Dopamine Transporter)+", "GIRK2+"], "critical_qc": "Electrophysiological action potential and dopamine release assays" }
+    ],
+    "key_references": [
+      { "pmid": "22056989", "title": "Dopamine neurons derived from human ES cells efficiently engraft in animal models of Parkinson's disease", "journal": "Nature", "year": 2011, "doi": "10.1038/nature10648" },
+      { "pmid": "32405080", "title": "Preclinical assessment of human embryonic stem cell-derived dopaminergic progenitors", "journal": "Cell Stem Cell", "year": 2020, "doi": "10.1016/j.stem.2020.04.012" }
+    ]
+  },
+  {
+    "protocol_id": "PROTO_CARDIO_02",
+    "target_lineage": "Ventricular Cardiomyocytes",
+    "clinical_indication": "Myocardial Infarction / Heart Failure Remodeling",
+    "starting_cell_type": "Human iPSCs",
+    "approach": "Wnt Modulation Directed Cardiac Differentiation",
+    "transcription_factors": [
+      { "symbol": "GATA4", "role": "Cardiac mesoderm master regulator", "oncogenic_risk": "low" },
+      { "symbol": "MEF2C", "role": "Cardiomyocyte structural gene activation", "oncogenic_risk": "low" },
+      { "symbol": "TBX5", "role": "Ventricular conduction and septation", "oncogenic_risk": "none" }
+    ],
+    "reprogramming_cocktails": [
+      {
+        "cocktail_name": "GiWi Protocol (GSK3 inhibitor followed by Wnt inhibitor)",
+        "delivery_method": "Chemically Defined Media (CHIR99021 Day 0 -> IWR-1/IWP-2 Day 3)",
+        "factors": ["CHIR99021", "IWP-2 / IWR-1", "BMP4", "Activin A"],
+        "tumorigenic_risk_score": 0.05,
+        "risk_level": "LOW",
+        "teratoma_risk": "Extremely Low when followed by Glucose Deprivation / Lactate selection",
+        "oncogene_reactivation": "Zero (small molecule induction only)",
+        "recommended": true,
+        "notes": "Produces >90% purity cTnT+ beating cardiomyocytes; lactate purification kills non-cardiomyocytes."
+      }
+    ],
+    "differentiation_timeline": [
+      { "day_range": "Days 0-2", "stage": "Primitive Streak & Mesoderm Induction", "key_markers": ["BRACHYURY (T)+", "MIXL1+"], "critical_qc": "Transient Wnt/GSK3beta inhibition" },
+      { "day_range": "Days 3-5", "stage": "Cardiac Mesoderm Specification", "key_markers": ["MESP1+", "KDR+"], "critical_qc": "Strict Wnt signaling blockade" },
+      { "day_range": "Days 6-10", "stage": "Cardiac Progenitors & First Spontaneous Beats", "key_markers": ["NKX2-5+", "ISL1+"], "critical_qc": "Microscopic observation of spontaneous contractility" },
+      { "day_range": "Days 11-20", "stage": "Structural Ventricular Cardiomyocytes", "key_markers": ["TNNT2 (Cardiac Troponin T)+", "MYH6/7+", "MLC2v+"], "critical_qc": "Lactate selection protocol (glucose-free media)" }
+    ],
+    "key_references": [
+      { "pmid": "22634475", "title": "Chemically defined generation of human cardiomyocytes", "journal": "Nature Methods", "year": 2012, "doi": "10.1038/nmeth.1999" },
+      { "pmid": "24982166", "title": "Human ES-cell-derived cardiomyocytes regenerate non-human primate heart", "journal": "Nature", "year": 2014, "doi": "10.1038/nature13233" }
+    ]
+  },
+  {
+    "protocol_id": "PROTO_BETA_03",
+    "target_lineage": "Pancreatic Beta Cells (Glucose-Responsive)",
+    "clinical_indication": "Type 1 Diabetes Mellitus",
+    "starting_cell_type": "Human iPSCs",
+    "approach": "Stage-wise Embryonic Recapitulation (Definitive Endoderm -> Pancreatic Endoderm -> Beta Cell)",
+    "transcription_factors": [
+      { "symbol": "PDX1", "role": "Pancreatic and duodenal homeobox 1", "oncogenic_risk": "low" },
+      { "symbol": "NKX6-1", "role": "Mature beta-cell identity and insulin secretion", "oncogenic_risk": "none" },
+      { "symbol": "MAFA", "role": "Glucose-stimulated insulin gene transcription", "oncogenic_risk": "none" }
+    ],
+    "reprogramming_cocktails": [
+      {
+        "cocktail_name": "Seven-Stage Chemically Defined Endoderm Differentiation (Melton/Pagliuca Protocol)",
+        "delivery_method": "Growth factor sequence (Activin A -> FGF10 -> Retinoic Acid -> ALK5i)",
+        "factors": ["Activin A", "Wnt3a", "KGF", "Retinoic Acid", "Sant-1", "Alk5i II"],
+        "tumorigenic_risk_score": 0.09,
+        "risk_level": "LOW",
+        "teratoma_risk": "Very Low (mitigated by CD142 / GP2 enrichment)",
+        "oncogene_reactivation": "Zero",
+        "recommended": true,
+        "notes": "Yields SC-islets that reverse hyperglycemia in diabetic rodents and entered phase 1/2 human trials (Vertex VX-880)."
+      }
+    ],
+    "differentiation_timeline": [
+      { "day_range": "Days 0-3", "stage": "Stage 1: Definitive Endoderm", "key_markers": ["SOX17+", "FOXA2+", "CXCR4+"], "critical_qc": ">95% CXCR4 positivity by flow cytometry" },
+      { "day_range": "Days 4-7", "stage": "Stage 2: Primitive Gut Tube", "key_markers": ["HNF1B+", "HNF4A+"], "critical_qc": "Downregulation of pluripotency genes" },
+      { "day_range": "Days 8-12", "stage": "Stage 3-4: Pancreatic Endoderm", "key_markers": ["PDX1+", "NKX6-1+"], "critical_qc": "Co-expression of PDX1 and NKX6-1" },
+      { "day_range": "Days 13-25", "stage": "Stage 5-7: Mature Beta Clusters (SC-Islets)", "key_markers": ["INSULIN+", "C-PEPTIDE+", "MAFA+", "GLUT2+"], "critical_qc": "Static Glucose Stimulated Insulin Secretion (GSIS) stimulation index >2.0" }
+    ],
+    "key_references": [
+      { "pmid": "25307935", "title": "Generation of functional human pancreatic beta cells in vitro", "journal": "Cell", "year": 2014, "doi": "10.1016/j.cell.2014.09.040" },
+      { "pmid": "34937243", "title": "Stem cell-derived islets in clinical trials for type 1 diabetes", "journal": "Nature Reviews Endocrinology", "year": 2022, "doi": "10.1038/s41574-021-00624-9" }
+    ]
+  }
+]
