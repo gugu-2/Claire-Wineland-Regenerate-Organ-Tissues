@@ -1,0 +1,5 @@
+{
+  "summary": "Frontend UX roadmap covering 10 areas: missing loading states, broken navigation flow state persistence, dark mode inconsistencies, empty-state screens for all 6 tabs, guided wizard mode for new users, improved locus track viewer with zoom/pan, better error handling, data table improvements (sorting/filtering), mobile responsiveness, and accessibility.",
+  "updatedAt": "2026-09-13T11:54:27.758529800Z",
+  "userFacing": true
+}

@@ -1,0 +1,5 @@
+{
+  "summary": "Database and data model plan covering current schema, proposed additions (patient_sessions, background_jobs, chat_messages, document_embeddings), migration strategy from SQLite to PostgreSQL, data retention and GDPR considerations, and reference_genes.json limitations.",
+  "updatedAt": "2026-09-13T11:55:04.366586400Z",
+  "userFacing": true
+}

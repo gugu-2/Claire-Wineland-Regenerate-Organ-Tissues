@@ -1,0 +1,5 @@
+{
+  "summary": "Complete feature gaps analysis identifying 15 issues ranging from critical (no real off-target genome search, no real FASTA database, custom gene support broken) to minor (no IGV link-out, no audit log export). Includes broken state wiring in App.jsx for VCF upload, non-functional export buttons, and unenfored expert review gate.",
+  "updatedAt": "2026-09-13T11:51:13.442322300Z",
+  "userFacing": true
+}

@@ -1,0 +1,5 @@
+{
+  "summary": "Architecture improvement plan covering backend refactoring (FastAPI service split, async database I/O, task queue for long-running bioinformatics jobs), database schema improvements (versioned samples, audit log indexing, vector store for RAG), authentication strategy, and a 3-tier deployment path from local to cloud.",
+  "updatedAt": "2026-09-13T11:52:56.457873100Z",
+  "userFacing": true
+}

@@ -1,0 +1,5 @@
+{
+  "summary": "Scientific accuracy audit covering all backend modules — what is genuinely real (Azimuth scoring, ClinVar API, PAM scanning, sequence reconstitution) vs. simulated (off-target CFD against fake mismatches, hard-coded keyword knowledge copilot answers, placeholder gnomAD frequencies). Includes priority fix list.",
+  "updatedAt": "2026-09-13T11:51:13.105215800Z",
+  "userFacing": true
+}

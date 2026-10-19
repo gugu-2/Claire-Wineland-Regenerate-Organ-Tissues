@@ -1,0 +1,5 @@
+{
+  "summary": "Proposed new features roadmap covering 12 high-value additions: real BLAST/Cas-OFFinder off-target search, Ensembl gene fetch, prime editing support (PegRNA designer), base editor outcome predictor, structural variant support, AI copilot with real embeddings, variant phasing, multi-locus workflow, patient report PDF, CRISPOR comparison table, and a guided mode wizard.",
+  "updatedAt": "2026-09-13T11:52:56.125490900Z",
+  "userFacing": true
+}
