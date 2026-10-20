@@ -50,6 +50,11 @@ from modules.clone_simulator import simulate_tumor_evolution
 from modules.neoantigen_predictor import run_neoantigen_prediction
 from modules.tumor_fingerprint import generate_tumor_fingerprint
 from modules.guide_evolution import simulate_guide_evolution_robustness
+from modules.structure_fetcher import (
+    fetch_pdb_structure,
+    get_structure_annotations,
+    list_supported_structures
+)
 
 app = FastAPI(
     title=APP_NAME,
@@ -1055,6 +1060,37 @@ def api_art_reference():
             "enable epigenome editing. 10-15+ year horizon for any therapeutic application."
         ),
     }
+
+
+# ----------------- 3D Structure Fetcher Endpoints (Spec 01) ----------------- #
+
+@app.get("/api/structure/list")
+def api_list_supported_structures():
+    """List pre-curated CRISPR & gene-editing macromolecular structures."""
+    return list_supported_structures()
+
+@app.get("/api/structure/{pdb_id}")
+def api_get_structure(pdb_id: str):
+    """Retrieve PDB/mmCIF crystal structure with caching and metadata."""
+    try:
+        return fetch_pdb_structure(pdb_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load structure {pdb_id}: {str(e)}")
+
+@app.get("/api/structure/{pdb_id}/annotations")
+def api_get_structure_annotations(
+    pdb_id: str,
+    guide_seq: Optional[str] = None,
+    mutation_label: Optional[str] = None,
+    mutation_pos: Optional[int] = None
+):
+    """Get active catalytic residues, PAM coordinates, and somatic mutation sites."""
+    return get_structure_annotations(
+        pdb_id=pdb_id,
+        guide_seq=guide_seq,
+        mutation_label=mutation_label,
+        mutation_pos=mutation_pos
+    )
 
 
 @app.websocket("/ws/playground")
