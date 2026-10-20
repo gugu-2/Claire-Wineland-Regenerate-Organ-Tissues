@@ -55,6 +55,11 @@ from modules.structure_fetcher import (
     get_structure_annotations,
     list_supported_structures
 )
+from modules.offtarget_scanner import (
+    start_offtarget_scan_job,
+    execute_offtarget_scan_async
+)
+from core.models import OffTargetScanModel
 
 app = FastAPI(
     title=APP_NAME,
@@ -103,6 +108,12 @@ class CrisprDesignRequest(BaseModel):
     personalized_sequence: str
     personal_variants: List[Dict[str, Any]]
     pam_type: Optional[str] = "SpCas9_NGG"
+
+class OffTargetScanRequest(BaseModel):
+    guide_seq: str
+    pam_type: Optional[str] = "NGG"
+    sample_id: Optional[str] = None
+    max_mismatches: Optional[int] = 3
 
 class OligoOrderRequest(BaseModel):
     guide_seq: str
@@ -1091,6 +1102,59 @@ def api_get_structure_annotations(
         mutation_label=mutation_label,
         mutation_pos=mutation_pos
     )
+
+
+# ----------------- Genome-Wide Off-Target Scan Endpoints (Spec 02) ----------------- #
+
+@app.post("/api/crispr/offtarget-scan")
+def api_start_offtarget_scan(req: OffTargetScanRequest, background_tasks: BackgroundTasks):
+    """Initiates an asynchronous genome-wide off-target alignment scan across GRCh38."""
+    if not req.guide_seq or len(req.guide_seq.strip()) < 15:
+        raise HTTPException(status_code=400, detail="Invalid guide sequence length (minimum 15 nt)")
+    
+    job_id = start_offtarget_scan_job(
+        guide_seq=req.guide_seq.strip(),
+        pam_type=req.pam_type or "NGG",
+        sample_id=req.sample_id
+    )
+    background_tasks.add_task(
+        execute_offtarget_scan_async,
+        job_id=job_id,
+        guide_seq=req.guide_seq.strip(),
+        pam_type=req.pam_type or "NGG"
+    )
+    return {
+        "job_id": job_id,
+        "status": "QUEUED",
+        "message": f"Scan job queued for guide {req.guide_seq[:10]}..."
+    }
+
+@app.get("/api/crispr/offtarget-scan/{job_id}")
+def api_get_offtarget_scan_status(job_id: str):
+    """Poll the status and retrieve annotated genomic hits for a scan job."""
+    from core.database import SessionLocal
+    db = SessionLocal()
+    try:
+        job = db.query(OffTargetScanModel).filter(OffTargetScanModel.job_id == job_id).first()
+        if not job:
+            raise HTTPException(status_code=404, detail="Off-target scan job not found")
+        
+        results = None
+        if job.results_json:
+            try:
+                results = json.loads(job.results_json)
+            except Exception:
+                results = job.results_json
+                
+        return {
+            "job_id": job.job_id,
+            "status": job.status,
+            "progress_pct": job.progress_pct,
+            "error_message": job.error_message,
+            "results": results
+        }
+    finally:
+        db.close()
 
 
 @app.websocket("/ws/playground")

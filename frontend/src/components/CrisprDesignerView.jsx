@@ -15,6 +15,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import LocusTrackViewer from './LocusTrackViewer';
+import OffTargetTable from './OffTargetTable';
 
 export default function CrisprDesignerView({
   targetGene,
@@ -31,6 +32,34 @@ export default function CrisprDesignerView({
   const [selectedGuide, setSelectedGuide] = useState(candidates?.[0] || null);
   const [sortBy, setSortBy] = useState('efficiency'); // 'efficiency' | 'cfd'
   const [modalityFilter, setModalityFilter] = useState('all'); // 'all' | 'cbe' | 'abe'
+  const [offTargetModal, setOffTargetModal] = useState(null); // { jobId, guideSeq, pamType }
+  const [isStartingScan, setIsStartingScan] = useState(false);
+
+  const handleRunGenomeWideScan = async (guideSeq, pamType = "NGG") => {
+    setIsStartingScan(true);
+    try {
+      const res = await fetch('/api/crispr/offtarget-scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          guide_seq: guideSeq,
+          pam_type: pamType,
+          sample_id: selectedSample?.sample_id || 'sample_default'
+        })
+      });
+      if (!res.ok) throw new Error("Failed to start scan");
+      const data = await res.json();
+      setOffTargetModal({
+        jobId: data.job_id,
+        guideSeq: guideSeq,
+        pamType: pamType
+      });
+    } catch (err) {
+      console.error("Error starting off-target scan:", err);
+    } finally {
+      setIsStartingScan(false);
+    }
+  };
 
   // Sync selected guide when candidates change
   React.useEffect(() => {
@@ -299,6 +328,15 @@ export default function CrisprDesignerView({
                               Cas-OFFinder Scan Running...
                             </div>
                           )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRunGenomeWideScan(c.patient_guide_20nt || c.reference_guide_20nt, "NGG");
+                            }}
+                            className="mt-1.5 px-2 py-0.5 rounded text-[10px] font-sans font-medium bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 transition-colors inline-flex items-center gap-1"
+                          >
+                            <Dna className="w-2.5 h-2.5" /> 3.2B Scan ↗
+                          </button>
                         </td>
                         <td className="py-3 px-3 text-center font-sans">
                           <div className="flex items-center justify-center gap-1">
@@ -525,6 +563,15 @@ export default function CrisprDesignerView({
                   </button>
                 )}
 
+                <button
+                  onClick={() => handleRunGenomeWideScan(selectedGuide.patient_guide_20nt || selectedGuide.reference_guide_20nt, "NGG")}
+                  disabled={isStartingScan}
+                  className="w-full mt-2 bg-indigo-950/80 hover:bg-indigo-900/80 text-indigo-300 border border-indigo-700/60 font-semibold py-2 rounded-lg text-xs transition-all flex items-center justify-center gap-1.5"
+                >
+                  <Dna className="w-3.5 h-3.5" />
+                  {isStartingScan ? 'Starting Scan...' : 'Run Full Genome-Wide Off-Target Scan (GRCh38)'}
+                </button>
+
                 <p className="text-[10px] text-slate-500 text-center mt-2">
                   Pre-validation sign-off required prior to experimental synthesis.
                 </p>
@@ -537,6 +584,25 @@ export default function CrisprDesignerView({
           )}
         </div>
       </div>
+
+      {/* Off-Target 3.2B bp Scan Modal */}
+      {offTargetModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-5xl max-h-[90vh] overflow-y-auto">
+            <OffTargetTable
+              jobId={offTargetModal.jobId}
+              guideSeq={offTargetModal.guideSeq}
+              pamType={offTargetModal.pamType}
+              onCriticalHitFound={() => {
+                if (onOpenReviewModal && selectedGuide) {
+                  onOpenReviewModal(selectedGuide);
+                }
+              }}
+              onClose={() => setOffTargetModal(null)}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Bottom Step-by-Step Navigation Bar */}
       {onProceedToWetLab && (
