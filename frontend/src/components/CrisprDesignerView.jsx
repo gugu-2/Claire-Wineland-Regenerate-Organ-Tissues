@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { api } from '../services/api';
 import {
   Dna,
   ShieldAlert,
@@ -9,6 +10,7 @@ import {
   Activity,
   Filter,
   BarChart3,
+  BarChart2,
   Layers,
   ArrowRight,
   TestTube,
@@ -30,6 +32,17 @@ export default function CrisprDesignerView({
   isProcessing
 }) {
   const [selectedGuide, setSelectedGuide] = useState(candidates?.[0] || null);
+  const [expressionData, setExpressionData] = useState(null);
+  const [hideUnexpressed, setHideUnexpressed] = useState(false);
+
+  useEffect(() => {
+    if (targetGene) {
+      const sid = selectedSample?.sample_id || 'DEFAULT';
+      api.getGeneExpression(sid, targetGene)
+        .then(data => setExpressionData(data))
+        .catch(err => console.warn('RNA-seq fetch error:', err));
+    }
+  }, [targetGene, selectedSample?.sample_id]);
   const [sortBy, setSortBy] = useState('efficiency'); // 'efficiency' | 'cfd'
   const [modalityFilter, setModalityFilter] = useState('all'); // 'all' | 'cbe' | 'abe'
   const [offTargetModal, setOffTargetModal] = useState(null); // { jobId, guideSeq, pamType }
@@ -72,8 +85,8 @@ export default function CrisprDesignerView({
     }
   }, [candidates]);
 
-  // Filter candidates based on modality
-  const filteredCandidates = (candidates || []).filter(c => {
+  // Filter candidates based on modality and RNA expression
+  const baseFiltered = (candidates || []).filter(c => {
     if (modalityFilter === 'cbe') {
       return c.base_editing_cbe?.target_count_in_window > 0;
     }
@@ -82,6 +95,10 @@ export default function CrisprDesignerView({
     }
     return true;
   });
+
+  const filteredCandidates = (hideUnexpressed && expressionData && !expressionData.expressed)
+    ? []
+    : baseFiltered;
 
   const sortedCandidates = [...filteredCandidates].sort((a, b) => {
     if (sortBy === 'efficiency') {
@@ -136,9 +153,32 @@ export default function CrisprDesignerView({
           <div className="inline-flex items-center gap-2 bg-indigo-950/60 text-indigo-400 border border-indigo-800/60 px-2.5 py-1 rounded-full text-xs font-mono mb-3">
             <Dna className="w-3.5 h-3.5" /> Module 2: Personalized CRISPR Guide RNA Design & CFD Scoring
           </div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">
-            Target Locus: {targetGene} &bull; Sample: {selectedSample?.sample_id}
-          </h2>
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="text-2xl font-bold text-white tracking-tight">
+              Target Locus: {targetGene} &bull; Sample: {selectedSample?.sample_id}
+            </h2>
+            {expressionData && (
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                expressionData.expressed
+                  ? 'bg-emerald-950/80 text-emerald-300 border-emerald-700'
+                  : 'bg-rose-950/80 text-rose-300 border-rose-700'
+              }`}>
+                <span className={`w-2 h-2 rounded-full ${expressionData.expressed ? 'bg-emerald-400' : 'bg-rose-500 animate-pulse'}`}></span>
+                {expressionData.expressed
+                  ? `RNA-seq: ${expressionData.tpm} TPM (${expressionData.classification})`
+                  : `RNA-seq: Silent (${expressionData.tpm} TPM) ⚠️`}
+              </span>
+            )}
+          </div>
+          {expressionData && !expressionData.expressed && (
+            <div className="mt-3 bg-rose-950/50 border border-rose-700/80 rounded-xl p-3 text-xs text-rose-200 flex items-start gap-2.5">
+              <span className="text-base">⚠️</span>
+              <div>
+                <strong>Low Clinical Utility Warning:</strong> Target gene <code className="font-mono font-bold text-white">{targetGene}</code> has an expression level of only <strong className="text-rose-400">{expressionData.tpm} TPM</strong> (&lt; 1.0 threshold) in this tumor.
+                Cleavage of transcriptionally silent genes produces minimal therapeutic impact or phenotypic alteration.
+              </div>
+            </div>
+          )}
           <p className="text-sm text-slate-300 mt-2 leading-relaxed">
             Candidate gRNAs evaluated with empirical <strong>Doench Azimuth 2.0</strong> on-target biophysical features,
             <strong> 80-element Cleavage Frequency Determination (CFD)</strong> mismatch matrix, and <strong>Base Editing (CBE/ABE)</strong> window analysis.
@@ -197,6 +237,18 @@ export default function CrisprDesignerView({
               ABE (A&rarr;G)
             </button>
           </div>
+
+          <button
+            onClick={() => setHideUnexpressed(!hideUnexpressed)}
+            className={`px-2.5 py-1 rounded text-xs transition-all flex items-center gap-1 border ${
+              hideUnexpressed
+                ? 'bg-amber-600 text-white font-bold border-amber-500 shadow-md'
+                : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
+            }`}
+            title="Filter out guides if target gene is transcriptionally silent (TPM < 1.0)"
+          >
+            <span>{hideUnexpressed ? '✓ Filter: Silent Hidden' : 'Filter: Hide Silent (TPM < 1)'}</span>
+          </button>
 
           {onRerunScanner && (
             <button

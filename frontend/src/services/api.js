@@ -147,7 +147,7 @@ export const api = {
   },
 
   async startOffTargetScan(payload) {
-    const res = await fetch(`${API_BASE}/crispr/off-target-scan`, {
+    const res = await fetch(`${API_BASE}/crispr/offtarget-scan`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -156,7 +156,7 @@ export const api = {
   },
 
   async getOffTargetScanStatus(jobId) {
-    const res = await fetch(`${API_BASE}/crispr/off-target-scan/${jobId}`);
+    const res = await fetch(`${API_BASE}/crispr/offtarget-scan/${encodeURIComponent(jobId)}`);
     return res.json();
   },
 
@@ -260,6 +260,59 @@ export const api = {
         delivery_system: deliverySystem,
         cancer_context: cancerContext
       })
+    });
+    return res.json();
+  },
+
+  // ── SPRINT 2: Multi-Allele Neoantigen & RNA-seq Integration ──────────────
+
+  async getHlaAlleles() {
+    const res = await fetch(`${API_BASE}/oncology/neoantigen-alleles`);
+    return res.json();
+  },
+
+  async predictMultiAlleleNeoantigens(payload) {
+    const res = await fetch(`${API_BASE}/oncology/neoantigen-predict`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
+
+  async designVaccineCassette(payload) {
+    const res = await fetch(`${API_BASE}/oncology/vaccine-design`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
+
+  async uploadRnaSeqMatrix(payload) {
+    const res = await fetch(`${API_BASE}/sample/upload-rnaseq`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
+
+  async getGeneExpression(sampleId, geneName) {
+    const res = await fetch(`${API_BASE}/sample/${encodeURIComponent(sampleId)}/expression/${encodeURIComponent(geneName)}`);
+    return res.json();
+  },
+
+  async getSampleExpressionSummary(sampleId) {
+    const res = await fetch(`${API_BASE}/sample/${encodeURIComponent(sampleId)}/expression-summary`);
+    return res.json();
+  },
+
+  async loadBenchmarkRnaSeq(payload) {
+    const res = await fetch(`${API_BASE}/sample/load-benchmark-rnaseq`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     });
     return res.json();
   }

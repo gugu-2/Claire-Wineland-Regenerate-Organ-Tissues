@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Upload, CheckCircle, AlertTriangle, Shield, ArrowRight, Dna, Info } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Upload, CheckCircle, AlertTriangle, Shield, ArrowRight, Dna, Info, BarChart2, FileText, Database } from 'lucide-react';
 import LocusTrackViewer from './LocusTrackViewer';
+import { api } from '../services/api';
 
 export default function SampleIntakeView({
   samples,
@@ -12,11 +13,18 @@ export default function SampleIntakeView({
   onProceedToCrispr,
   isProcessing
 }) {
-  const [activeSubTab, setActiveSubTab] = useState('benchmarks');
+  const [activeSubTab, setActiveSubTab] = useState('benchmarks'); // 'benchmarks' | 'upload' | 'rnaseq'
   const [customVcfText, setCustomVcfText] = useState('');
   const [customGene, setCustomGene] = useState('CCR5');
   const [customSampleId, setCustomSampleId] = useState('SAMPLE_EXP_2026');
   const [uploadNotice, setUploadNotice] = useState(null);
+
+  // RNA-seq State
+  const [rnaseqText, setRnaseqText] = useState('');
+  const [normalizationType, setNormalizationType] = useState('auto');
+  const [rnaseqSummary, setRnaseqSummary] = useState(null);
+  const [rnaseqLoading, setRnaseqLoading] = useState(false);
+  const [targetGeneExpr, setTargetGeneExpr] = useState(null);
 
   const sampleTemplates = {
     ccr5_delta32: {
@@ -45,13 +53,21 @@ export default function SampleIntakeView({
     setUploadNotice(`Loaded template: ${tmpl.id} (${tmpl.gene}). Click 'Parse & Personalize Locus' below.`);
   };
 
+  // Fetch gene expression whenever selected sample or target gene changes
+  useEffect(() => {
+    if (selectedSample?.sample_id && selectedSample?.target_gene) {
+      api.getGeneExpression(selectedSample.sample_id, selectedSample.target_gene)
+        .then(data => setTargetGeneExpr(data))
+        .catch(() => setTargetGeneExpr(null));
+    }
+  }, [selectedSample?.sample_id, selectedSample?.target_gene]);
+
   const handleCustomVcfSubmit = (e) => {
     e.preventDefault();
     let textToParse = customVcfText.trim();
     let sampleIdToUse = customSampleId;
     let geneToUse = customGene;
 
-    // If user clicked without typing, auto-load standard CCR5-Delta32 template
     if (!textToParse) {
       const tmpl = sampleTemplates.ccr5_delta32;
       textToParse = tmpl.vcf;
@@ -74,6 +90,62 @@ export default function SampleIntakeView({
     setTimeout(() => setUploadNotice(null), 5000);
   };
 
+  // RNA-seq upload handler
+  const handleRnaSeqUpload = async (e) => {
+    e.preventDefault();
+    const sid = selectedSample?.sample_id || customSampleId || 'SAMPLE_EXP_2026';
+    if (!rnaseqText.trim()) {
+      setUploadNotice('Please paste or load an RNA-seq expression matrix CSV.');
+      return;
+    }
+
+    setRnaseqLoading(true);
+    try {
+      const res = await api.uploadRnaSeqMatrix({
+        sample_id: sid,
+        csv_content: rnaseqText.trim(),
+        filename: 'patient_rnaseq_matrix.csv',
+        normalization: normalizationType
+      });
+      setRnaseqSummary(res);
+      setUploadNotice(`RNA-seq Matrix processed! ${res.total_genes} genes loaded, ${res.expressed_count} expressed.`);
+      // Refresh target gene expression
+      const expr = await api.getGeneExpression(sid, selectedSample?.target_gene || customGene || 'CCR5');
+      setTargetGeneExpr(expr);
+    } catch (err) {
+      setUploadNotice(`Error processing RNA-seq: ${err.message}`);
+    } finally {
+      setRnaseqLoading(false);
+    }
+  };
+
+  // 1-Click TCGA Benchmark RNA-seq loader
+  const handleLoadBenchmarkRnaSeq = async (benchmarkKey) => {
+    const sid = selectedSample?.sample_id || 'TCGA_PATIENT_SAMPLE';
+    setRnaseqLoading(true);
+    try {
+      const res = await api.loadBenchmarkRnaSeq({
+        sample_id: sid,
+        benchmark_key: benchmarkKey
+      });
+      setRnaseqSummary({
+        sample_id: sid,
+        normalization_applied: 'TPM',
+        total_genes: res.genes_loaded_count,
+        expressed_count: res.top_expressed.filter(g => g.tpm >= 1.0).length,
+        unexpressed_count: res.top_expressed.filter(g => g.tpm < 1.0).length,
+        top_expressed: res.top_expressed
+      });
+      setUploadNotice(`Loaded ${res.benchmark_loaded} benchmark expression profile (${res.cancer_type}).`);
+      const expr = await api.getGeneExpression(sid, selectedSample?.target_gene || 'CCR5');
+      setTargetGeneExpr(expr);
+    } catch (err) {
+      setUploadNotice(`Failed to load benchmark: ${err.message}`);
+    } finally {
+      setRnaseqLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Overview Banner */}
@@ -81,32 +153,30 @@ export default function SampleIntakeView({
         <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-2 bg-cyan-950/60 text-cyan-400 border border-cyan-800/60 px-2.5 py-1 rounded-full text-xs font-mono mb-3">
-            <Dna className="w-3.5 h-3.5" /> Module 1: Sample Intake & Personalized Genome Generation
+            <Dna className="w-3.5 h-3.5" /> Module 1: Multi-Omics Sample Intake & Reconstitution
           </div>
           <h2 className="text-2xl font-bold text-white tracking-tight">
-            Patient-Specific Sequence Reconstitution
+            Patient-Specific Sequence & Transcriptome Intake
           </h2>
           <p className="text-sm text-slate-300 mt-2 leading-relaxed">
-            Standard off-the-shelf CRISPR tools design guides against generic reference genomes (GRCh38).
-            Here, every guide is computed directly against <strong className="text-cyan-400">this individual patient's personal sequence</strong>,
-            identifying mutations in PAM motifs (<code className="text-cyan-300">NGG</code>) and seed regions that dictate real-world cleavage success or failure.
+            Multi-omics precision oncology: Combine <strong className="text-cyan-400">Personalized DNA Variants (VCF)</strong> to identify PAM/seed mutations, and <strong className="text-purple-400">RNA-seq Expression Matrices (TPM)</strong> to verify target transcription before designing CRISPR guides.
           </p>
         </div>
       </div>
 
-      {/* Cohort Selector vs Custom Upload Tabs */}
+      {/* Cohort Selector vs Custom Upload vs RNA Expression Subtabs */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Sample Selection */}
+        {/* Left Column: Sample Selection & Upload */}
         <div className="lg:col-span-1 space-y-4">
           <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-4">
-            <div className="flex border-b border-slate-800 pb-2 mb-3">
+            <div className="flex border-b border-slate-800 pb-2 mb-3 gap-1">
               <button
                 onClick={() => setActiveSubTab('benchmarks')}
                 className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
                   activeSubTab === 'benchmarks' ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                Benchmark Cohort
+                Cohort VCF
               </button>
               <button
                 onClick={() => setActiveSubTab('upload')}
@@ -114,11 +184,20 @@ export default function SampleIntakeView({
                   activeSubTab === 'upload' ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                Upload / Paste VCF
+                Custom VCF
+              </button>
+              <button
+                onClick={() => setActiveSubTab('rnaseq')}
+                className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-1 ${
+                  activeSubTab === 'rnaseq' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <BarChart2 className="w-3 h-3" /> RNA-seq
               </button>
             </div>
 
-            {activeSubTab === 'benchmarks' ? (
+            {/* TAB 1: Benchmark Cohort */}
+            {activeSubTab === 'benchmarks' && (
               <div className="space-y-2.5">
                 <p className="text-xs text-slate-400 font-medium mb-2">Select a validated preclinical sample:</p>
                 {samples.map((s) => {
@@ -162,7 +241,10 @@ export default function SampleIntakeView({
                   );
                 })}
               </div>
-            ) : (
+            )}
+
+            {/* TAB 2: Upload / Paste VCF */}
+            {activeSubTab === 'upload' && (
               <form onSubmit={handleCustomVcfSubmit} className="space-y-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">Sample ID</label>
@@ -182,10 +264,10 @@ export default function SampleIntakeView({
                   >
                     <option value="CCR5">CCR5 (HIV Co-receptor / 3p21.31)</option>
                     <option value="HBB">HBB (Sickle Cell / 11p15.4)</option>
+                    <option value="KRAS">KRAS (Oncogene / 12p12.1)</option>
                     <option value="POU5F1">POU5F1 / OCT4 (Pluripotency / 6p21.33)</option>
                   </select>
                 </div>
-                {/* Quick Presets */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">Load Benchmark Clinical Template</label>
                   <div className="grid grid-cols-3 gap-1.5 mb-2">
@@ -227,13 +309,6 @@ export default function SampleIntakeView({
                   ></textarea>
                 </div>
 
-                {uploadNotice && (
-                  <div className="bg-cyan-950/80 border border-cyan-800 text-cyan-200 p-2 rounded text-[11px] font-sans flex items-center gap-1.5">
-                    <CheckCircle className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                    <span>{uploadNotice}</span>
-                  </div>
-                )}
-
                 <button
                   type="submit"
                   disabled={isProcessing}
@@ -248,11 +323,147 @@ export default function SampleIntakeView({
                 </button>
               </form>
             )}
+
+            {/* TAB 3: RNA-seq Expression Matrix (Feature 04) */}
+            {activeSubTab === 'rnaseq' && (
+              <form onSubmit={handleRnaSeqUpload} className="space-y-3">
+                <div className="text-xs text-slate-300">
+                  <span className="font-semibold text-purple-300">RNA Expression Matrix</span>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Upload transcriptomic counts to verify whether CRISPR target genes are expressed in this tumor.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">1-Click Curated TCGA Benchmarks</label>
+                  <div className="grid grid-cols-2 gap-1.5 mb-2">
+                    <button
+                      type="button"
+                      onClick={() => handleLoadBenchmarkRnaSeq('TCGA-PDAC')}
+                      className="bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-purple-500/50 text-purple-300 p-1.5 rounded text-[10px] font-mono transition-all text-left"
+                    >
+                      <div className="font-bold">TCGA-PDAC</div>
+                      <div className="text-[9px] text-slate-400">Pancreatic (KRAS High, CCR5 Silent)</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleLoadBenchmarkRnaSeq('TCGA-COAD')}
+                      className="bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-purple-500/50 text-purple-300 p-1.5 rounded text-[10px] font-mono transition-all text-left"
+                    >
+                      <div className="font-bold">TCGA-COAD</div>
+                      <div className="text-[9px] text-slate-400">Colorectal (KRAS & BRAF High)</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleLoadBenchmarkRnaSeq('TCGA-LUAD')}
+                      className="bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-purple-500/50 text-purple-300 p-1.5 rounded text-[10px] font-mono transition-all text-left"
+                    >
+                      <div className="font-bold">TCGA-LUAD</div>
+                      <div className="text-[9px] text-slate-400">Lung (EGFR High, ALK Expressed)</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleLoadBenchmarkRnaSeq('DEFAULT')}
+                      className="bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-purple-500/50 text-purple-300 p-1.5 rounded text-[10px] font-mono transition-all text-left"
+                    >
+                      <div className="font-bold">PRECLINICAL</div>
+                      <div className="text-[9px] text-slate-400">Cell Line (High CCR5 & CD4)</div>
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Normalization Mode</label>
+                  <select
+                    value={normalizationType}
+                    onChange={(e) => setNormalizationType(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-purple-500"
+                  >
+                    <option value="auto">Auto-Detect Format (Counts or TPM)</option>
+                    <option value="raw_counts">Raw Counts &rarr; TPM Normalization</option>
+                    <option value="tpm">Transcripts Per Million (TPM)</option>
+                    <option value="fpkm">FPKM / RPKM Matrix</option>
+                  </select>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-slate-300">Paste Expression Matrix (CSV/TSV)</label>
+                    <span className="text-[10px] text-slate-500">Gene,Value</span>
+                  </div>
+                  <textarea
+                    rows={4}
+                    value={rnaseqText}
+                    onChange={(e) => setRnaseqText(e.target.value)}
+                    placeholder="Gene,Counts&#10;KRAS,15400&#10;TP53,6800&#10;CCR5,0&#10;EGFR,11200"
+                    className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-[11px] font-mono text-purple-200 placeholder-slate-600 focus:outline-none focus:border-purple-500"
+                  ></textarea>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={rnaseqLoading}
+                  className={`w-full ${rnaseqLoading ? 'bg-purple-800 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-500 active:scale-[0.98]'} text-white font-semibold py-2 rounded-lg text-xs transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-600/20`}
+                >
+                  {rnaseqLoading ? (
+                    <div className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
+                  ) : (
+                    <BarChart2 className="w-3.5 h-3.5" />
+                  )}
+                  {rnaseqLoading ? 'Normalizing Matrix...' : 'Upload & Compute TPM Matrix'}
+                </button>
+              </form>
+            )}
+
+            {uploadNotice && (
+              <div className="mt-3 bg-cyan-950/80 border border-cyan-800 text-cyan-200 p-2 rounded text-[11px] font-sans flex items-center gap-1.5">
+                <CheckCircle className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <span>{uploadNotice}</span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Right Column: Personalized Locus & Variant Annotation */}
+        {/* Right Column: Personalized Locus & Variant Annotation & Expression */}
         <div className="lg:col-span-2 space-y-4">
+          {/* Target Gene Expression Card (Sprint 2 / Feature 04) */}
+          {targetGeneExpr && (
+            <div className={`border rounded-xl p-4 transition-all ${
+              targetGeneExpr.expressed
+                ? 'bg-emerald-950/20 border-emerald-800/80'
+                : 'bg-rose-950/20 border-rose-800/80'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BarChart2 className={`w-4 h-4 ${targetGeneExpr.expressed ? 'text-emerald-400' : 'text-rose-400'}`} />
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">
+                    RNA-seq Target Expression Status &bull; {targetGeneExpr.gene_name}
+                  </span>
+                </div>
+                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                  targetGeneExpr.expressed
+                    ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-700'
+                    : 'bg-rose-900/60 text-rose-300 border border-rose-700'
+                }`}>
+                  {targetGeneExpr.classification} ({targetGeneExpr.tpm} TPM)
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-2">
+                {targetGeneExpr.expressed ? (
+                  <span>
+                    ✓ Target gene <strong className="text-white">{targetGeneExpr.gene_name}</strong> is actively transcribed ({targetGeneExpr.tpm} TPM, {targetGeneExpr.percentile_rank}th percentile).
+                    High clinical utility for CRISPR knockout.
+                  </span>
+                ) : (
+                  <span className="text-amber-300">
+                    ⚠️ <strong>Warning:</strong> Target gene <strong className="text-white">{targetGeneExpr.gene_name}</strong> has minimal/silent transcription ({targetGeneExpr.tpm} TPM &lt; 1.0 threshold).
+                    Cleavage is unlikely to produce clinical efficacy in this tumor state.
+                  </span>
+                )}
+              </p>
+            </div>
+          )}
+
           {/* Sample Metadata Card */}
           <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
@@ -326,6 +537,68 @@ export default function SampleIntakeView({
               </div>
             )}
           </div>
+
+          {/* RNA-seq Top Expressed Summary Table (Feature 04) */}
+          {rnaseqSummary && rnaseqSummary.top_expressed && (
+            <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-5">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <BarChart2 className="w-4 h-4 text-purple-400" /> Transcriptome Profile &bull; Top Expressed Genes
+                </h4>
+                <div className="flex gap-2 text-xs">
+                  <span className="px-2 py-0.5 bg-emerald-950/60 text-emerald-300 border border-emerald-800 rounded">
+                    Expressed: {rnaseqSummary.expressed_count}
+                  </span>
+                  <span className="px-2 py-0.5 bg-rose-950/60 text-rose-300 border border-rose-800 rounded">
+                    Silent (&lt;1 TPM): {rnaseqSummary.unexpressed_count}
+                  </span>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-slate-400 font-mono">
+                      <th className="py-2 px-3">Gene</th>
+                      <th className="py-2 px-3">Expression (TPM)</th>
+                      <th className="py-2 px-3">Percentile</th>
+                      <th className="py-2 px-3">Clinical Status</th>
+                      <th className="py-2 px-3">Target Suitability</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 font-mono">
+                    {rnaseqSummary.top_expressed.map((g, i) => (
+                      <tr key={i} className="hover:bg-slate-800/30">
+                        <td className="py-2 px-3 font-bold text-white">{g.gene_name}</td>
+                        <td className="py-2 px-3 text-purple-300">{g.tpm}</td>
+                        <td className="py-2 px-3 text-slate-400">{g.percentile_rank || g.percentile}%</td>
+                        <td className="py-2 px-3">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                            g.tpm >= 50 ? 'bg-emerald-950 text-emerald-300 border border-emerald-700' :
+                            g.tpm >= 10 ? 'bg-blue-950 text-blue-300 border border-blue-700' :
+                            g.tpm >= 1.0 ? 'bg-amber-950 text-amber-300 border border-amber-700' :
+                            'bg-slate-800 text-slate-400'
+                          }`}>
+                            {g.classification || (g.tpm >= 50 ? 'High' : g.tpm >= 10 ? 'Medium' : g.tpm >= 1 ? 'Low' : 'Silent')}
+                          </span>
+                        </td>
+                        <td className="py-2 px-3">
+                          {g.tpm >= 1.0 ? (
+                            <span className="text-emerald-400 flex items-center gap-1 text-[11px]">
+                              <CheckCircle className="w-3 h-3" /> Transcribed Target
+                            </span>
+                          ) : (
+                            <span className="text-rose-400 flex items-center gap-1 text-[11px]">
+                              <AlertTriangle className="w-3 h-3" /> Silent (Skip Guide)
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {/* ClinVar & gnomAD Variant Annotations Table */}
           <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-5">

@@ -47,7 +47,19 @@ from modules.aart_modeler import (
     ART_RT_FEATURES,
 )
 from modules.clone_simulator import simulate_tumor_evolution
-from modules.neoantigen_predictor import run_neoantigen_prediction
+from modules.neoantigen_predictor import (
+    run_neoantigen_prediction,
+    run_multi_allele_neoantigen_prediction,
+    get_supported_hla_alleles,
+    design_vaccine_cassette
+)
+from modules.rnaseq_processor import (
+    process_rnaseq_matrix,
+    save_expression_to_db,
+    query_gene_expression,
+    load_curated_benchmark_profile
+)
+from core.models import NeoantigenPredictionModel, ExpressionProfileModel
 from modules.tumor_fingerprint import generate_tumor_fingerprint
 from modules.guide_evolution import simulate_guide_evolution_robustness
 from modules.structure_fetcher import (
@@ -844,31 +856,54 @@ def get_viral_database():
 
 class NeoantigenRequest(BaseModel):
     somatic_variants: List[Dict]
+    hla_alleles: Optional[List[str]] = None
+    sample_id: Optional[str] = "DEFAULT_SAMPLE"
+
+class MultiAlleleNeoantigenRequest(BaseModel):
+    somatic_mutations: List[Dict]
+    hla_alleles: Optional[List[str]] = ["HLA-A*02:01", "HLA-B*07:02", "HLA-C*07:01"]
+    sample_id: Optional[str] = "DEFAULT_SAMPLE"
+
+class VaccineDesignRequest(BaseModel):
+    peptides: List[Dict]
+    patient_id: Optional[str] = "PATIENT_001"
+    linker_type: Optional[str] = "AAY"
+    include_trafficking_signal: Optional[bool] = True
+
+class RnaSeqUploadRequest(BaseModel):
+    sample_id: str
+    csv_content: str
+    filename: Optional[str] = "expression_matrix.csv"
+    normalization: Optional[str] = "auto"
+
+class BenchmarkRnaSeqRequest(BaseModel):
+    sample_id: str
+    benchmark_key: Optional[str] = "TCGA-PDAC"
 
 @app.post("/api/oncocrispr/predict-neoantigen")
 def api_predict_neoantigen(req: NeoantigenRequest):
     """
-    ONCOLOGY PHASE 1 — Predicts MHC-I binding affinity for neoepitopes generated 
-    by somatic mutations using statistical mock (NetMHCpan-style approximation).
+    ONCOLOGY PHASE 1 & Sprint 2 — Predicts MHC-I binding affinity for neoepitopes generated 
+    by somatic mutations with multi-allele support and persistence.
     """
     try:
         results = run_neoantigen_prediction(req.somatic_variants)
         
-        # Save to database (mocking what normally happens)
         from core.database import SessionLocal
-        from core.models import NeoantigenPredictionModel
         db = SessionLocal()
         try:
-            for res in results:
+            for idx, res in enumerate(results):
+                neo = res.get("neoepitope", {})
                 db_neo = NeoantigenPredictionModel(
-                    sample_id="DEFAULT_SAMPLE",
-                    gene=res["gene"],
-                    mutation=res["mutation"],
-                    peptide_9mer=res["neoepitope"]["peptide"],
-                    hla_allele=res["neoepitope"]["hla_allele"],
-                    affinity_ic50=res["neoepitope"]["affinity_ic50_nm"],
-                    percentile_rank=res["neoepitope"]["rank_pct"],
-                    binding_level=res["neoepitope"]["binding_level"]
+                    tumor_sample_id=req.sample_id,
+                    gene=res.get("gene", "UNKNOWN"),
+                    amino_acid_change=res.get("mutation"),
+                    mutant_peptide=neo.get("peptide", ""),
+                    predicted_ic50_nm=neo.get("affinity_ic50_nm", 5000.0),
+                    immunogenicity="HIGH" if neo.get("affinity_ic50_nm", 5000) < 50 else ("MODERATE" if neo.get("affinity_ic50_nm", 5000) < 500 else "LOW"),
+                    vaccine_priority=idx + 1,
+                    hla_type=neo.get("hla_allele", "HLA-A*02:01"),
+                    in_vaccine_design=(idx < 5)
                 )
                 db.add(db_neo)
             db.commit()
@@ -880,6 +915,178 @@ def api_predict_neoantigen(req: NeoantigenRequest):
             db.close()
             
         return {"status": "success", "total_predicted": len(results), "neoantigens": results}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/oncology/neoantigen-predict")
+def api_multi_allele_neoantigen(req: MultiAlleleNeoantigenRequest):
+    """
+    Sprint 2 (Feature 03) — Multi-allele Class I HLA neoantigen engine.
+    Computes IC50 (nM), NetChop-3.1 cleavage, NetCTLpan TAP score, agretopicity fold-change,
+    and priority vaccine candidate ranking across patient HLA-A, HLA-B, HLA-C alleles.
+    """
+    try:
+        result = run_multi_allele_neoantigen_prediction(
+            somatic_mutations=req.somatic_mutations,
+            hla_alleles=req.hla_alleles or ["HLA-A*02:01", "HLA-B*07:02", "HLA-C*07:01"]
+        )
+        # Persist top vaccine candidates to database
+        from core.database import SessionLocal
+        db = SessionLocal()
+        try:
+            for idx, cand in enumerate(result.get("top_neoantigens", [])):
+                db_neo = NeoantigenPredictionModel(
+                    tumor_sample_id=req.sample_id,
+                    gene=cand.get("gene"),
+                    amino_acid_change=cand.get("mutation"),
+                    mutant_peptide=cand.get("mutant_peptide"),
+                    predicted_ic50_nm=cand.get("ic50_nm"),
+                    immunogenicity="HIGH" if cand.get("ic50_nm", 5000) < 50 else ("MODERATE" if cand.get("ic50_nm", 5000) < 500 else "LOW"),
+                    vaccine_priority=cand.get("vaccine_priority", idx + 1),
+                    hla_type=cand.get("hla_allele"),
+                    in_vaccine_design=(idx < 5)
+                )
+                db.add(db_neo)
+            db.commit()
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Failed to persist multi-allele neoantigens: {e}")
+            db.rollback()
+        finally:
+            db.close()
+            
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/oncology/neoantigen-alleles")
+def api_get_hla_alleles():
+    """Returns supported Class I HLA alleles annotated with population frequencies."""
+    try:
+        return {"status": "success", "alleles": get_supported_hla_alleles()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/oncology/vaccine-design")
+def api_design_vaccine(req: VaccineDesignRequest):
+    """
+    Sprint 2 (Feature 03) — Designs a poly-epitope neoantigen mRNA/peptide vaccine cassette
+    with proteasomal linkers (AAY / GPGPG), signal peptide, and MITD trafficking domain.
+    """
+    try:
+        cassette = design_vaccine_cassette(
+            peptides=req.peptides,
+            patient_id=req.patient_id or "PATIENT_001",
+            linker_type=req.linker_type or "AAY",
+            include_trafficking_signal=req.include_trafficking_signal
+        )
+        return cassette
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/sample/upload-rnaseq")
+def api_upload_rnaseq(req: RnaSeqUploadRequest):
+    """
+    Sprint 2 (Feature 04) — Ingests gene expression matrix (CSV/TSV), detects format,
+    normalizes raw counts to TPM, computes percentiles, and saves to expression_profiles table.
+    """
+    try:
+        result = process_rnaseq_matrix(
+            content_text=req.csv_content,
+            sample_id=req.sample_id,
+            filename=req.filename or "expression_matrix.csv",
+            normalization=req.normalization or "auto"
+        )
+        if result.get("status") == "error":
+            raise HTTPException(status_code=400, detail=result.get("message"))
+            
+        from core.database import SessionLocal
+        db = SessionLocal()
+        try:
+            saved_count = save_expression_to_db(db, result["records"])
+            result["saved_to_db"] = saved_count
+        finally:
+            db.close()
+            
+        # Omit full raw records from immediate response for bandwidth efficiency
+        summary_response = {k: v for k, v in result.items() if k != "records"}
+        return summary_response
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/sample/{sample_id}/expression/{gene}")
+def api_get_gene_expression(sample_id: str, gene: str):
+    """
+    Sprint 2 (Feature 04) — Retrieves RNA-seq expression (TPM, percentile, expressed status)
+    for a specific gene and sample. Used by CRISPR designers to verify target expression.
+    """
+    try:
+        from core.database import SessionLocal
+        db = SessionLocal()
+        try:
+            return query_gene_expression(db, sample_id, gene)
+        finally:
+            db.close()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/sample/{sample_id}/expression-summary")
+def api_get_expression_summary(sample_id: str):
+    """Sprint 2 (Feature 04) — Returns RNA-seq summary stats and top expressed genes for a sample."""
+    try:
+        from core.database import SessionLocal
+        db = SessionLocal()
+        try:
+            records = db.query(ExpressionProfileModel).filter(
+                ExpressionProfileModel.sample_id == sample_id
+            ).all()
+            if not records:
+                # Return default benchmark summary
+                return load_curated_benchmark_profile(db, sample_id, "TCGA-PDAC")
+                
+            expressed_count = sum(1 for r in records if r.tpm >= 1.0)
+            unexpressed_count = len(records) - expressed_count
+            top_genes = sorted(records, key=lambda x: x.tpm, reverse=True)[:15]
+            
+            return {
+                "status": "success",
+                "sample_id": sample_id,
+                "total_genes": len(records),
+                "expressed_count": expressed_count,
+                "unexpressed_count": unexpressed_count,
+                "top_expressed": [
+                    {
+                        "gene_name": r.gene_name,
+                        "tpm": r.tpm,
+                        "percentile_rank": r.percentile_rank,
+                        "classification": r.classification,
+                        "expressed": r.tpm >= 1.0
+                    }
+                    for r in top_genes
+                ]
+            }
+        finally:
+            db.close()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/sample/load-benchmark-rnaseq")
+def api_load_benchmark_rnaseq(req: BenchmarkRnaSeqRequest):
+    """Sprint 2 (Feature 04) — Loads curated TCGA RNA-seq expression profiles for 1-click clinical testing."""
+    try:
+        from core.database import SessionLocal
+        db = SessionLocal()
+        try:
+            result = load_curated_benchmark_profile(
+                db_session=db,
+                sample_id=req.sample_id,
+                benchmark_key=req.benchmark_key or "TCGA-PDAC"
+            )
+            return result
+        finally:
+            db.close()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

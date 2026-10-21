@@ -208,13 +208,33 @@ class NeoantigenPredictionModel(Base):
     __tablename__ = "neoantigen_predictions"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    tumor_sample_id = Column(String(64), ForeignKey("tumor_samples.tumor_sample_id"))
-    gene = Column(String(64))
-    amino_acid_change = Column(String(64))
+    tumor_sample_id = Column(String(64), nullable=True, index=True)
+    gene = Column(String(64), index=True)
+    amino_acid_change = Column(String(64), nullable=True)
     mutant_peptide = Column(String(256))
     predicted_ic50_nm = Column(Float)               # < 500 nM = strong binder
-    immunogenicity = Column(String(32))             # "HIGH", "MODERATE", "LOW"
-    vaccine_priority = Column(Integer)              # 1 = highest priority
-    hla_type = Column(String(64))
+    immunogenicity = Column(String(32), nullable=True) # "HIGH", "MODERATE", "LOW"
+    vaccine_priority = Column(Integer, default=1)   # 1 = highest priority
+    hla_type = Column(String(64), index=True)
     in_vaccine_design = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class ExpressionProfileModel(Base):
+    """
+    Stores RNA-seq gene expression levels (TPM / raw counts / Log2FC) per sample.
+    Used for filtering unexpressed CRISPR targets and composite score weighting.
+    """
+    __tablename__ = "expression_profiles"
+
+    id = Column(String(64), primary_key=True, index=True)
+    sample_id = Column(String(64), index=True, nullable=False)
+    gene_name = Column(String(64), index=True, nullable=False)
+    tpm = Column(Float, nullable=False, default=0.0)
+    raw_counts = Column(Float, nullable=True)
+    log2fc = Column(Float, nullable=True)
+    padj = Column(Float, nullable=True)
+    percentile_rank = Column(Float, default=0.0)
+    classification = Column(String(32), default="Low") # "High" | "Medium" | "Low" | "Silent"
+    source_file = Column(String(256), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

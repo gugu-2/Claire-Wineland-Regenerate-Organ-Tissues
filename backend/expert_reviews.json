@@ -19,7 +19,7 @@
       "cnv_impact_on_offtarget_evaluated": false
     },
     "oncology_disclaimer": null,
-    "reviewed_at": "2026-10-06T15:55:07.954636+00:00"
+    "reviewed_at": "2026-10-21T23:36:43.401420+00:00"
   },
   "sgRNA_CCR5_Test_01": {
     "candidate_id": "sgRNA_CCR5_Test_01",
@@ -57,6 +57,6 @@
       "cnv_impact_on_offtarget_evaluated": false
     },
     "oncology_disclaimer": null,
-    "reviewed_at": "2026-10-06T15:54:58.378370+00:00"
+    "reviewed_at": "2026-10-21T23:36:39.955554+00:00"
   }
 }

@@ -25,5 +25,5 @@ def get_db():
 
 def init_db():
     """Initializes all database tables defined in models."""
-    from core.models import SampleModel, VariantModel, ExpertReviewModel, AuditLogModel, ApiCacheModel
+    import core.models  # imports all models subclassing Base
     Base.metadata.create_all(bind=engine)
