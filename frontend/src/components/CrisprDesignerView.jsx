@@ -331,7 +331,8 @@ export default function CrisprDesignerView({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleRunGenomeWideScan(c.patient_guide_20nt || c.reference_guide_20nt, "NGG");
+                              const effectivePam = selectedNuclease?.includes("Cas12a") ? "TTTV" : (selectedNuclease?.includes("SaCas9") ? "NNGRRT" : "NGG");
+                              handleRunGenomeWideScan(c.patient_guide_20nt || c.reference_guide_20nt, effectivePam);
                             }}
                             className="mt-1.5 px-2 py-0.5 rounded text-[10px] font-sans font-medium bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 transition-colors inline-flex items-center gap-1"
                           >
@@ -564,7 +565,7 @@ export default function CrisprDesignerView({
                 )}
 
                 <button
-                  onClick={() => handleRunGenomeWideScan(selectedGuide.patient_guide_20nt || selectedGuide.reference_guide_20nt, "NGG")}
+                  onClick={() => handleRunGenomeWideScan(selectedGuide.patient_guide_20nt || selectedGuide.reference_guide_20nt, selectedNuclease?.includes("Cas12a") ? "TTTV" : (selectedNuclease?.includes("SaCas9") ? "NNGRRT" : "NGG"))}
                   disabled={isStartingScan}
                   className="w-full mt-2 bg-indigo-950/80 hover:bg-indigo-900/80 text-indigo-300 border border-indigo-700/60 font-semibold py-2 rounded-lg text-xs transition-all flex items-center justify-center gap-1.5"
                 >

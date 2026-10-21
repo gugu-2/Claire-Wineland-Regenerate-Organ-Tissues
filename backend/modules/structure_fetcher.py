@@ -314,33 +314,31 @@ def fetch_pdb_structure(pdb_id: str) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Failed to fetch {pdb_id} from RCSB PDB: {e}")
 
-    # Fallback if offline/failed
-    if not cif_text:
+    # Fallback if offline/failed; only cache genuine RCSB fetched data to prevent cache poisoning
+    if cif_text:
+        try:
+            db = SessionLocal()
+            db.query(ApiCacheModel).filter(
+                ApiCacheModel.endpoint == "rcsb_cif",
+                ApiCacheModel.query_key == cache_key
+            ).delete()
+            
+            expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+            new_cache = ApiCacheModel(
+                endpoint="rcsb_cif",
+                query_key=cache_key,
+                response_json=cif_text,
+                expires_at=expires_at
+            )
+            db.add(new_cache)
+            db.commit()
+        except Exception as e:
+            logger.warning(f"Could not write structure {pdb_id} to api_cache: {e}")
+        finally:
+            db.close()
+    else:
         logger.info(f"Using offline structural data for {pdb_id}")
         cif_text = MINIMAL_OFFLINE_CIF
-
-    # Cache into SQLite
-    try:
-        db = SessionLocal()
-        # Remove existing if any
-        db.query(ApiCacheModel).filter(
-            ApiCacheModel.endpoint == "rcsb_cif",
-            ApiCacheModel.query_key == cache_key
-        ).delete()
-        
-        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
-        new_cache = ApiCacheModel(
-            endpoint="rcsb_cif",
-            query_key=cache_key,
-            response_json=cif_text,
-            expires_at=expires_at
-        )
-        db.add(new_cache)
-        db.commit()
-    except Exception as e:
-        logger.warning(f"Could not write structure {pdb_id} to api_cache: {e}")
-    finally:
-        db.close()
 
     return {
         "pdb_id": pdb_id,

@@ -114,6 +114,13 @@ export default function MolecularViewer({
     };
   }, []);
 
+  // Update structure annotations whenever guide or mutation parameters change
+  useEffect(() => {
+    if (pluginRef.current) {
+      loadStructure(selectedPdb);
+    }
+  }, [guideSeq, targetSeq, mutationLabel, mutationPos]);
+
   // Fetch structure data & annotations when selected Pdb changes
   const loadStructure = async (pdbId) => {
     setLoading(true);
@@ -264,6 +271,17 @@ export default function MolecularViewer({
             <RefreshCw className="w-8 h-8 text-indigo-400 animate-spin mb-3" />
             <p className="text-sm font-medium text-white">Loading Structure {selectedPdb} from RCSB PDB...</p>
             <p className="text-xs text-slate-400 mt-1">Parsing mmCIF atomic coordinates and calculating residue geometries</p>
+          </div>
+        )}
+
+        {/* Load Notice / Warning */}
+        {loadError && !loading && (
+          <div className="absolute top-4 right-4 z-20 max-w-xs bg-amber-950/90 border border-amber-500/50 rounded-lg p-3 text-xs text-amber-200 shadow-xl backdrop-blur-md">
+            <div className="flex items-center gap-1.5 font-semibold text-amber-400 mb-1">
+              <Info className="w-4 h-4 text-amber-400" />
+              Notice
+            </div>
+            <p className="text-[11px] text-amber-300/90">{loadError}</p>
           </div>
         )}
 
