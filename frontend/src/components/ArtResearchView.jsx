@@ -65,6 +65,35 @@ export default function ArtResearchView() {
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [copiedArrayFasta, setCopiedArrayFasta] = useState(false);
 
+  // ── SPRINT 6: RETRON & DGR SYNTHESIZER STATE (Spec 12) ───────────────────
+  const [retroSubTab, setRetroSubTab] = useState('retron'); // 'retron' | 'dgr' | 'modality'
+  const [retroPresets, setRetroPresets] = useState([]);
+
+  // Retron State
+  const [retronGene, setRetronGene] = useState('KRAS');
+  const [retronMutation, setRetronMutation] = useState('c.35G>A (p.G12D)');
+  const [retronChassis, setRetronChassis] = useState('Eco1');
+  const [retronDonor, setRetronDonor] = useState('TGTGGTAGTTGGAGCTGGTGGCGTAGGCAAGAGTGCCTTGACGATACAGCTAATTCAGAATCATTTTGTGGACGAATAT');
+  const [retronResult, setRetronResult] = useState(null);
+  const [retronLoading, setRetronLoading] = useState(false);
+  const [copiedRetronFasta, setCopiedRetronFasta] = useState(false);
+
+  // DGR State
+  const [dgrProtein, setDgrProtein] = useState('Trastuzumab scFv (anti-HER2)');
+  const [dgrLoop, setDgrLoop] = useState('WGGDGFYAMDY');
+  const [dgrSystem, setDgrSystem] = useState('Bordetella_BPP1');
+  const [dgrResult, setDgrResult] = useState(null);
+  const [dgrLoading, setDgrLoading] = useState(false);
+  const [copiedDgrLibrary, setCopiedDgrLibrary] = useState(false);
+
+  // Modality State
+  const [compGene, setCompGene] = useState('KRAS');
+  const [compMutation, setCompMutation] = useState('G12D');
+  const [compEditType, setCompEditType] = useState('POINT_MUTATION');
+  const [compLength, setCompLength] = useState(1);
+  const [compResult, setCompResult] = useState(null);
+  const [compLoading, setCompLoading] = useState(false);
+
   useEffect(() => {
     api.getArtReference().then(data => {
       setReference(data);
@@ -105,6 +134,80 @@ export default function ArtResearchView() {
       setFwError(err.message || 'Construct design failed');
     } finally {
       setFwLoading(false);
+    }
+  };
+
+  const fetchRetroPresets = async () => {
+    try {
+      const res = await api.getRetroelementPresets();
+      if (res?.presets) setRetroPresets(res.presets);
+    } catch (e) {
+      console.warn('Failed loading retroelement presets:', e);
+    }
+  };
+
+  const applyRetroPreset = (p) => {
+    if (p.modality === 'RETRON_EDITOR') {
+      setRetroSubTab('retron');
+      setRetronGene(p.target_gene);
+      setRetronMutation(p.target_mutation);
+      setRetronChassis(p.retron_chassis);
+      if (p.donor_payload_seq) setRetronDonor(p.donor_payload_seq);
+    } else if (p.modality === 'DGR_MUTAGENESIS') {
+      setRetroSubTab('dgr');
+      setDgrProtein(p.target_protein);
+      setDgrLoop(p.loop_sequence);
+      setDgrSystem(p.dgr_system);
+    }
+  };
+
+  const runDesignRetron = async () => {
+    setRetronLoading(true);
+    try {
+      const res = await api.designRetron({
+        target_gene: retronGene,
+        target_mutation: retronMutation,
+        donor_payload_seq: retronDonor,
+        retron_chassis: retronChassis
+      });
+      setRetronResult(res.design);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRetronLoading(false);
+    }
+  };
+
+  const runDesignDgr = async () => {
+    setDgrLoading(true);
+    try {
+      const res = await api.designDgrLibrary({
+        target_protein_name: dgrProtein,
+        loop_sequence: dgrLoop,
+        dgr_system: dgrSystem
+      });
+      setDgrResult(res.library);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setDgrLoading(false);
+    }
+  };
+
+  const runModalityComparison = async () => {
+    setCompLoading(true);
+    try {
+      const res = await api.compareModalities({
+        target_gene: compGene,
+        target_mutation: compMutation,
+        desired_edit_type: compEditType,
+        target_length_bp: parseInt(compLength) || 1
+      });
+      setCompResult(res.comparison);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setCompLoading(false);
     }
   };
 
@@ -236,6 +339,7 @@ export default function ArtResearchView() {
         {[
           { id: 'overview', label: '📖 Overview' },
           { id: 'forward_writer', label: '🚀 Forward ART Designer (Sprint 4)' },
+          { id: 'retroelements', label: '🧬 Retron & DGR Synthesizer (Sprint 6)' },
           { id: 'scan', label: '🔍 Array Scanner' },
           { id: 'locus', label: '🗺 Locus Analyzer' },
           { id: 'rna', label: '🔬 RNA Structure' },
@@ -243,7 +347,10 @@ export default function ArtResearchView() {
         ].map(tab => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => {
+              setActiveTab(tab.id);
+              if (tab.id === 'retroelements' && retroPresets.length === 0) fetchRetroPresets();
+            }}
             className={`px-4 py-2 text-sm rounded-t transition-colors ${
               activeTab === tab.id
                 ? 'bg-violet-900/50 text-violet-300 border-b-2 border-violet-400'
@@ -952,17 +1059,603 @@ export default function ArtResearchView() {
         </div>
       )}
 
-      {/* Synthesis Partner Order Modal (Spec 08) */}
+      {/* === SPRINT 6: BACTERIAL RETRON & DGR SYNTHESIZER TAB (Spec 12) === */}
+      {activeTab === 'retroelements' && (
+        <div className="space-y-6">
+          {/* Preset Selector Banner */}
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+              Curated Retron & DGR Clinical Benchmarks (Click to Preload)
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-2">
+              {[
+                {
+                  id: 'kras_g12d',
+                  label: 'KRAS G12D Retron',
+                  modality: 'RETRON_EDITOR',
+                  gene: 'KRAS',
+                  mut: 'c.35G>A (p.G12D)',
+                  chassis: 'Eco1',
+                  donor: 'TGTGGTAGTTGGAGCTGGTGGCGTAGGCAAGAGTGCCTTGACGATACAGCTAATTCAGAATCATTTTGTGGACGAATAT',
+                  badge: 'Eco1 msDNA'
+                },
+                {
+                  id: 'tp53_r248w',
+                  label: 'TP53 R248W Retron',
+                  modality: 'RETRON_EDITOR',
+                  gene: 'TP53',
+                  mut: 'c.742C>T (p.R248W)',
+                  chassis: 'Eco1',
+                  donor: 'CATGGGCGGCATGAACCGGAGGCCCATCCTCACCATCATCACACTGGAAGACTCCAGTGGTAATCTACTGGGACGGAAC',
+                  badge: 'DNA-Binding Restoration'
+                },
+                {
+                  id: 'hbb_sickle',
+                  label: 'HBB Sickle Cell Retron',
+                  modality: 'RETRON_EDITOR',
+                  gene: 'HBB',
+                  mut: 'c.20A>T (p.E6V)',
+                  chassis: 'Ec86',
+                  donor: 'ACTCCTGAGGAGAAGTCTGCCGTTACTGCCCTGTGGGGCAAGGTGAACGTGGATGAAGTTGGTGGTGAGGCCCTGGGC',
+                  badge: 'Ec86 Break-Free'
+                },
+                {
+                  id: 'her2_dgr',
+                  label: 'Anti-HER2 scFv DGR',
+                  modality: 'DGR_MUTAGENESIS',
+                  protein: 'Trastuzumab scFv (anti-HER2)',
+                  loop: 'WGGDGFYAMDY',
+                  system: 'Bordetella_BPP1',
+                  badge: '4^6 Variants'
+                },
+                {
+                  id: 'egfr_dgr',
+                  label: 'Anti-EGFRvIII CAR DGR',
+                  modality: 'DGR_MUTAGENESIS',
+                  protein: 'anti-EGFRvIII scFv 2173',
+                  loop: 'ARDGYDDYGAFDY',
+                  system: 'Treponema_TdDGR',
+                  badge: '4^9 Variants'
+                }
+              ].map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    if (p.modality === 'RETRON_EDITOR') {
+                      setRetroSubTab('retron');
+                      setRetronGene(p.gene);
+                      setRetronMutation(p.mut);
+                      setRetronChassis(p.chassis);
+                      setRetronDonor(p.donor);
+                    } else {
+                      setRetroSubTab('dgr');
+                      setDgrProtein(p.protein);
+                      setDgrLoop(p.loop);
+                      setDgrSystem(p.system);
+                    }
+                  }}
+                  className="p-2.5 text-left bg-gray-950 border border-gray-800 hover:border-violet-500/50 rounded-lg transition-all group"
+                >
+                  <div className="text-xs font-bold text-gray-200 group-hover:text-violet-300">{p.label}</div>
+                  <div className="text-[10px] text-violet-400 font-mono mt-0.5">{p.badge}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Sub-tab pills */}
+          <div className="flex gap-2 border-b border-gray-800 pb-2">
+            {[
+              { id: 'retron', label: '🧬 Retron msDNA Editor' },
+              { id: 'dgr', label: '🎲 DGR Targeted Hypermutagenesis' },
+              { id: 'modality', label: '⚖️ 7-Modality Precision Comparison' }
+            ].map((st) => (
+              <button
+                key={st.id}
+                onClick={() => setRetroSubTab(st.id)}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  retroSubTab === st.id
+                    ? 'bg-violet-600 text-white shadow-md shadow-violet-900/30'
+                    : 'bg-gray-900 text-gray-400 hover:text-white'
+                }`}
+              >
+                {st.label}
+              </button>
+            ))}
+          </div>
+
+          {/* SUB-TAB 1: Retron msDNA Editor */}
+          {retroSubTab === 'retron' && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Inputs */}
+              <div className="lg:col-span-5 bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
+                <h3 className="text-sm font-bold text-white flex items-center justify-between">
+                  <span>msDNA Retron Configuration</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-mono">
+                    DSB-Free HDR
+                  </span>
+                </h3>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-gray-400 block mb-1">Target Gene</label>
+                    <input
+                      type="text"
+                      value={retronGene}
+                      onChange={(e) => setRetronGene(e.target.value)}
+                      className="w-full bg-gray-950 border border-gray-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-violet-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 block mb-1">Mutation Target</label>
+                    <input
+                      type="text"
+                      value={retronMutation}
+                      onChange={(e) => setRetronMutation(e.target.value)}
+                      className="w-full bg-gray-950 border border-gray-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-violet-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Retron Chassis</label>
+                  <select
+                    value={retronChassis}
+                    onChange={(e) => setRetronChassis(e.target.value)}
+                    className="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-violet-500"
+                  >
+                    <option value="Eco1">Eco1 (E. coli — RetronEditor Broad 2022 Benchmark, 3.8x HDR)</option>
+                    <option value="Ec86">Ec86 (E. coli Canonical high-yield, 2.5x HDR)</option>
+                    <option value="Ec48">Ec48 (E. coli Thermotolerant 37°C-42°C, 3.2x HDR)</option>
+                    <option value="Mx162">Mx162 (Myxococcus xanthus Large Cargo)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center text-xs text-gray-400 mb-1">
+                    <span>Donor Repair Sequence (msd loop):</span>
+                    <span className="font-mono text-cyan-400">{retronDonor.replace(/\s+/g, '').length} nt</span>
+                  </div>
+                  <textarea
+                    value={retronDonor}
+                    onChange={(e) => setRetronDonor(e.target.value)}
+                    rows={4}
+                    className="w-full bg-gray-950 border border-gray-800 rounded-lg p-2.5 text-xs font-mono text-gray-200 focus:outline-none focus:border-violet-500 break-all"
+                  />
+                </div>
+
+                <button
+                  onClick={runDesignRetron}
+                  disabled={retronLoading}
+                  className="w-full py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold rounded-lg transition-all shadow-lg shadow-violet-900/30 flex items-center justify-center gap-2"
+                >
+                  {retronLoading ? 'Designing msDNA Cassette...' : 'Synthesize Retron msDNA Editor'}
+                </button>
+              </div>
+
+              {/* Outputs */}
+              <div className="lg:col-span-7 space-y-4">
+                {retronResult ? (
+                  <>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="bg-gray-900 border border-gray-800 rounded-xl p-3">
+                        <div className="text-[10px] uppercase font-bold text-gray-500">HDR Score</div>
+                        <div className="text-2xl font-black text-emerald-400 mt-1 font-mono">
+                          {retronResult.hdr_efficiency_score}
+                        </div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">{retronResult.hdr_fold_increase_vs_naked_dna} vs naked DNA</div>
+                      </div>
+                      <div className="bg-gray-900 border border-gray-800 rounded-xl p-3">
+                        <div className="text-[10px] uppercase font-bold text-gray-500">Stem ΔG</div>
+                        <div className="text-2xl font-black text-cyan-400 mt-1 font-mono">
+                          {retronResult.hairpin_delta_g_kcal_mol} <span className="text-xs">kcal/mol</span>
+                        </div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">Thermodynamic stability</div>
+                      </div>
+                      <div className="bg-gray-900 border border-gray-800 rounded-xl p-3">
+                        <div className="text-[10px] uppercase font-bold text-gray-500">Donor Length</div>
+                        <div className="text-2xl font-black text-violet-400 mt-1 font-mono">
+                          {retronResult.donor_length_nt} <span className="text-xs">nt</span>
+                        </div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">GC: {retronResult.donor_gc_pct}%</div>
+                      </div>
+                      <div className="bg-gray-900 border border-gray-800 rounded-xl p-3">
+                        <div className="text-[10px] uppercase font-bold text-gray-500">Branched Linkage</div>
+                        <div className="text-2xl font-black text-amber-400 mt-1 font-mono text-sm">
+                          2'-5' G Link
+                        </div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">{retronResult.branched_guanosine_position}</div>
+                      </div>
+                    </div>
+
+                    {/* Golden Gate Primers */}
+                    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-2">
+                      <div className="text-xs font-bold text-white uppercase tracking-wider flex items-center justify-between">
+                        <span>Golden Gate BsaI Cloning Primers</span>
+                        <span className="text-[10px] text-violet-400 font-mono">
+                          Vector: {retronResult.golden_gate_assembly.expression_vector}
+                        </span>
+                      </div>
+                      <div className="space-y-1.5 font-mono text-xs">
+                        <div className="p-2 bg-gray-950 rounded border border-gray-800 text-gray-300">
+                          <span className="text-emerald-400 font-bold">5' Primer (Overhang {retronResult.golden_gate_assembly.overhang_5p}): </span>
+                          {retronResult.golden_gate_assembly.forward_cloning_primer}
+                        </div>
+                        <div className="p-2 bg-gray-950 rounded border border-gray-800 text-gray-300">
+                          <span className="text-cyan-400 font-bold">3' Primer (Overhang {retronResult.golden_gate_assembly.overhang_3p}): </span>
+                          {retronResult.golden_gate_assembly.reverse_cloning_primer}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* FASTA View & Export */}
+                    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-white uppercase tracking-wider">
+                          Full Expression Plasmid Insert FASTA
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(retronResult.full_plasmid_insert_fasta);
+                              setCopiedRetronFasta(true);
+                              setTimeout(() => setCopiedRetronFasta(false), 2000);
+                            }}
+                            className="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-semibold rounded transition-colors flex items-center gap-1"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>{copiedRetronFasta ? 'Copied!' : 'Copy FASTA'}</span>
+                          </button>
+                          <a
+                            href={api.getRetronExportCsvUrl(retronResult.design_id)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-semibold rounded transition-colors flex items-center gap-1"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Export CSV</span>
+                          </a>
+                        </div>
+                      </div>
+                      <pre className="p-3 bg-gray-950 rounded-lg border border-gray-800 font-mono text-[11px] text-gray-300 overflow-x-auto break-all whitespace-pre-wrap max-h-40">
+                        {retronResult.full_plasmid_insert_fasta}
+                      </pre>
+                    </div>
+                  </>
+                ) : (
+                  <div className="bg-gray-900 border border-gray-800 rounded-xl p-16 text-center text-gray-500 text-xs">
+                    Configure your mutation and click <strong>Synthesize Retron msDNA Editor</strong> to generate the donor cassette.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* SUB-TAB 2: DGR Mutagenesis Library */}
+          {retroSubTab === 'dgr' && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Inputs */}
+              <div className="lg:col-span-5 bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
+                <h3 className="text-sm font-bold text-white flex items-center justify-between">
+                  <span>DGR Targeted Hypermutagenesis</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-800 font-mono">
+                    Adenine-Specific (A &rarr; N)
+                  </span>
+                </h3>
+
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Target Protein / scFv / Nanobody</label>
+                  <input
+                    type="text"
+                    value={dgrProtein}
+                    onChange={(e) => setDgrProtein(e.target.value)}
+                    className="w-full bg-gray-950 border border-gray-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-violet-500"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center text-xs text-gray-400 mb-1">
+                    <span>Target Antigen-Binding Loop (CDR-H3 / Variable Loop):</span>
+                    <span className="font-mono text-cyan-400">{dgrLoop.length} aa</span>
+                  </div>
+                  <input
+                    type="text"
+                    value={dgrLoop}
+                    onChange={(e) => setDgrLoop(e.target.value.toUpperCase())}
+                    placeholder="e.g. WGGDGFYAMDY"
+                    className="w-full bg-gray-950 border border-gray-800 rounded-lg px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-violet-500"
+                  />
+                  <p className="text-[10px] text-gray-500 mt-1">
+                    Adenines in the corresponding codons will be hypermutated by DGR reverse transcriptase at &gt;50% error rate.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">DGR Effector System</label>
+                  <select
+                    value={dgrSystem}
+                    onChange={(e) => setDgrSystem(e.target.value)}
+                    className="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-violet-500"
+                  >
+                    <option value="Bordetella_BPP1">Bordetella Phage BPP-1 (bprt RT, Canonical &gt;10^14 Diversity)</option>
+                    <option value="Treponema_TdDGR">Treponema denticola (TdDGR Mammalian-Compatible)</option>
+                    <option value="Vibrio_VcDGR">Vibrio campbellii (VcDGR High Processivity)</option>
+                  </select>
+                </div>
+
+                <button
+                  onClick={runDesignDgr}
+                  disabled={dgrLoading}
+                  className="w-full py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white text-xs font-bold rounded-lg transition-all shadow-lg shadow-amber-900/30 flex items-center justify-center gap-2"
+                >
+                  {dgrLoading ? 'Designing DGR Library...' : 'Generate DGR Combinatorial Library'}
+                </button>
+              </div>
+
+              {/* Outputs */}
+              <div className="lg:col-span-7 space-y-4">
+                {dgrResult ? (
+                  <>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="bg-gray-900 border border-gray-800 rounded-xl p-3">
+                        <div className="text-[10px] uppercase font-bold text-gray-500">Mutable Adenines</div>
+                        <div className="text-2xl font-black text-amber-400 mt-1 font-mono">
+                          {dgrResult.mutable_adenine_count} <span className="text-xs">bases</span>
+                        </div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">A &rarr; N targets</div>
+                      </div>
+                      <div className="bg-gray-900 border border-gray-800 rounded-xl p-3">
+                        <div className="text-[10px] uppercase font-bold text-gray-500">Diversity Space</div>
+                        <div className="text-lg font-black text-emerald-400 mt-1 font-mono truncate">
+                          {dgrResult.theoretical_diversity_space}
+                        </div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">Combinatorial variants</div>
+                      </div>
+                      <div className="bg-gray-900 border border-gray-800 rounded-xl p-3">
+                        <div className="text-[10px] uppercase font-bold text-gray-500">In-Frame %</div>
+                        <div className="text-2xl font-black text-cyan-400 mt-1 font-mono">
+                          {dgrResult.productive_in_frame_pct}%
+                        </div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">Stop-codon avoidance</div>
+                      </div>
+                      <div className="bg-gray-900 border border-gray-800 rounded-xl p-3">
+                        <div className="text-[10px] uppercase font-bold text-gray-500">RT Fidelity</div>
+                        <div className="text-2xl font-black text-purple-400 mt-1 font-mono text-sm">
+                          &gt;99.9%
+                        </div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">Non-A bases preserved</div>
+                      </div>
+                    </div>
+
+                    {/* Degenerate IUPAC Library & Actions */}
+                    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-white uppercase tracking-wider">
+                          Degenerate Oligo IUPAC Sequence
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(dgrResult.degenerate_iupac_library);
+                              setCopiedDgrLibrary(true);
+                              setTimeout(() => setCopiedDgrLibrary(false), 2000);
+                            }}
+                            className="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-semibold rounded transition-colors flex items-center gap-1"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>{copiedDgrLibrary ? 'Copied!' : 'Copy IUPAC'}</span>
+                          </button>
+                          <a
+                            href={api.getDgrExportCsvUrl(dgrResult.design_id)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-semibold rounded transition-colors flex items-center gap-1"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Export CSV</span>
+                          </a>
+                        </div>
+                      </div>
+                      <div className="p-3 bg-gray-950 rounded-lg border border-gray-800 font-mono text-xs text-amber-300 break-all">
+                        {dgrResult.degenerate_iupac_library}
+                      </div>
+
+                      <button
+                        onClick={() => setIsOrderModalOpen(true)}
+                        className="w-full py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-cyan-900/30"
+                      >
+                        <ShoppingCart className="w-4 h-4" />
+                        <span>Order DGR Library via Commercial Foundry (IDT/Twist)</span>
+                      </button>
+                    </div>
+
+                    {/* Codon Profile Table */}
+                    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-2">
+                      <span className="text-xs font-bold text-white uppercase tracking-wider block">
+                        Loop Codon Breakdown & Mutability
+                      </span>
+                      <div className="overflow-x-auto max-h-48 overflow-y-auto">
+                        <table className="w-full text-xs text-left">
+                          <thead className="text-[10px] uppercase font-mono text-gray-500 bg-gray-950 sticky top-0">
+                            <tr>
+                              <th className="py-1.5 px-2">Pos</th>
+                              <th className="py-1.5 px-2">Residue</th>
+                              <th className="py-1.5 px-2">Codon</th>
+                              <th className="py-1.5 px-2">Mutable Adenines</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-800 font-mono text-gray-300">
+                            {dgrResult.codon_profile.map((c, i) => (
+                              <tr key={i} className="hover:bg-gray-800/50">
+                                <td className="py-1 px-2 text-gray-500">{i + 1}</td>
+                                <td className="py-1 px-2 font-bold text-white">{c.amino_acid}</td>
+                                <td className="py-1 px-2 text-cyan-300">{c.codon}</td>
+                                <td className="py-1 px-2">
+                                  {c.mutable_adenines > 0 ? (
+                                    <span className="px-1.5 py-0.5 rounded bg-amber-950 text-amber-400 font-bold">
+                                      {c.mutable_adenines} (A &rarr; N)
+                                    </span>
+                                  ) : (
+                                    <span className="text-gray-500">0</span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="bg-gray-900 border border-gray-800 rounded-xl p-16 text-center text-gray-500 text-xs">
+                    Input your target binding loop and click <strong>Generate DGR Combinatorial Library</strong> to model adenine mutagenesis.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* SUB-TAB 3: 7-Modality Comparison Matrix */}
+          {retroSubTab === 'modality' && (
+            <div className="space-y-4">
+              <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex flex-wrap items-end gap-3">
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Target Gene</label>
+                  <input
+                    type="text"
+                    value={compGene}
+                    onChange={(e) => setCompGene(e.target.value)}
+                    className="bg-gray-950 border border-gray-800 rounded-lg px-2.5 py-1.5 text-xs text-white w-28 focus:outline-none focus:border-violet-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Mutation / Variant</label>
+                  <input
+                    type="text"
+                    value={compMutation}
+                    onChange={(e) => setCompMutation(e.target.value)}
+                    className="bg-gray-950 border border-gray-800 rounded-lg px-2.5 py-1.5 text-xs text-white w-28 focus:outline-none focus:border-violet-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Desired Edit Type</label>
+                  <select
+                    value={compEditType}
+                    onChange={(e) => setCompEditType(e.target.value)}
+                    className="bg-gray-950 border border-gray-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-violet-500"
+                  >
+                    <option value="POINT_MUTATION">Single Point Mutation (Transition/Transversion)</option>
+                    <option value="INSERTION">Insertion (1 to 5000 bp)</option>
+                    <option value="DELETION">Exon Deletion / Frame Restoration</option>
+                    <option value="LIBRARY">Targeted Affinity Library / Directed Evolution</option>
+                    <option value="KNOCKOUT">Gene Knockout / Disruption</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Target Length (bp)</label>
+                  <input
+                    type="number"
+                    value={compLength}
+                    onChange={(e) => setCompLength(e.target.value)}
+                    className="bg-gray-950 border border-gray-800 rounded-lg px-2.5 py-1.5 text-xs text-white w-24 focus:outline-none focus:border-violet-500"
+                  />
+                </div>
+                <button
+                  onClick={runModalityComparison}
+                  disabled={compLoading}
+                  className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg transition-colors shadow-md shadow-violet-900/30"
+                >
+                  {compLoading ? 'Evaluating...' : 'Evaluate 7 Modalities'}
+                </button>
+              </div>
+
+              {compResult && (
+                <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                        Comparative Modality Assessment Matrix
+                      </h3>
+                      <p className="text-[11px] text-gray-400 mt-0.5">
+                        Top Recommendation: <span className="font-bold text-emerald-400">{compResult.top_recommended_modality}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-left">
+                      <thead className="text-[10px] uppercase font-mono text-gray-500 bg-gray-950">
+                        <tr>
+                          <th className="py-2.5 px-3">Modality</th>
+                          <th className="py-2.5 px-3">Suitability</th>
+                          <th className="py-2.5 px-3">Indel Risk</th>
+                          <th className="py-2.5 px-3">DSB-Free</th>
+                          <th className="py-2.5 px-3">Max Payload</th>
+                          <th className="py-2.5 px-3">Clinical Maturity</th>
+                          <th className="py-2.5 px-3">Key Advantage</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-800 text-gray-300">
+                        {compResult.modalities_ranked.map((m, i) => (
+                          <tr key={m.modality_id} className="hover:bg-gray-800/40">
+                            <td className="py-2.5 px-3 font-bold text-white">
+                              {i === 0 && <span className="text-emerald-400 mr-1.5">★</span>}
+                              {m.name}
+                            </td>
+                            <td className="py-2.5 px-3 font-mono font-bold text-emerald-400">
+                              {m.suitability_score}/100
+                            </td>
+                            <td className="py-2.5 px-3 font-mono">
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] ${
+                                m.indel_risk_pct < 5 ? 'bg-emerald-950 text-emerald-400' :
+                                m.indel_risk_pct < 15 ? 'bg-amber-950 text-amber-400' :
+                                'bg-rose-950 text-rose-400'
+                              }`}>
+                                {m.indel_risk_pct}%
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3">
+                              {m.ds_break_free ? (
+                                <span className="text-emerald-400 font-bold">✓ Yes</span>
+                              ) : (
+                                <span className="text-rose-400 font-bold">✗ DSB</span>
+                              )}
+                            </td>
+                            <td className="py-2.5 px-3 font-mono text-cyan-300">
+                              {m.max_payload_bp > 1000 ? `${m.max_payload_bp/1000} kb` : `${m.max_payload_bp} bp`}
+                            </td>
+                            <td className="py-2.5 px-3 text-gray-400 text-[11px]">{m.clinical_maturity}</td>
+                            <td className="py-2.5 px-3 text-slate-300 text-[11px]">{m.key_advantage}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Synthesis Partner Order Modal (Spec 08 & Spec 12 DGR Library) */}
       <SynthesisOrderModal
         isOpen={isOrderModalOpen}
         onClose={() => setIsOrderModalOpen(false)}
         initialSequences={
-          fwResult?.idt_plate_orders?.slice(0, 8).map(u => ({
-            name: u.oligo_name,
-            sequence: u.sequence,
-            scale: u.scale,
-            purification: u.purification
-          })) || []
+          activeTab === 'retroelements' && dgrResult?.synthesis_items?.length
+            ? dgrResult.synthesis_items.map(item => ({
+                name: item.oligo_name,
+                sequence: item.sequence,
+                scale: item.scale || '100nmol',
+                purification: item.purification || 'HPLC'
+              }))
+            : fwResult?.idt_plate_orders?.slice(0, 8).map(u => ({
+                name: u.oligo_name,
+                sequence: u.sequence,
+                scale: u.scale,
+                purification: u.purification
+              })) || []
         }
       />
     </div>

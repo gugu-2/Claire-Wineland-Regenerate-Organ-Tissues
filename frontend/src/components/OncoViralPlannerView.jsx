@@ -43,7 +43,19 @@ export default function OncoViralPlannerView({ tumorProfile }) {
   const [bpLoading, setBpLoading] = useState(false);
 
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('recommend'); // 'recommend' | 'blueprint' | 'database'
+  const [activeTab, setActiveTab] = useState('recommend'); // 'recommend' | 'blueprint' | 'database' | 'pkpd'
+
+  // ── SPRINT 6: PK/PD Intratumoral Diffusion State ─────────────────────────
+  const [pkpdChassis, setPkpdChassis] = useState('HSV1_T-VEC_family');
+  const [pkpdRoute, setPkpdRoute] = useState('INTRATUMORAL_DIRECT');
+  const [pkpdDose, setPkpdDose] = useState('1e8');
+  const [pkpdRadius, setPkpdRadius] = useState(15.0);
+  const [pkpdDesmoplasia, setPkpdDesmoplasia] = useState(0.45);
+  const [pkpdSerology, setPkpdSerology] = useState('MODERATE');
+  const [pkpdHours, setPkpdHours] = useState(72);
+  const [pkpdResult, setPkpdResult] = useState(null);
+  const [pkpdLoading, setPkpdLoading] = useState(false);
+  const [pkpdPresets, setPkpdPresets] = useState([]);
 
   useEffect(() => {
     // Pre-fill from tumor profile if passed in
@@ -105,8 +117,52 @@ export default function OncoViralPlannerView({ tumorProfile }) {
     }
   };
 
+  const fetchPkpdPresets = async () => {
+    try {
+      const data = await api.getPkpdPresets();
+      if (data?.presets) setPkpdPresets(data.presets);
+    } catch (e) {
+      console.warn('Failed to load PK/PD presets:', e);
+    }
+  };
+
+  const applyPkpdPreset = (p) => {
+    setPkpdChassis(p.viral_chassis);
+    setPkpdRoute(p.delivery_route);
+    setPkpdDose(String(p.initial_dose_tcid50));
+    setPkpdRadius(p.tumor_radius_mm);
+    setPkpdDesmoplasia(p.desmoplasia_factor);
+    setPkpdSerology(p.serology_neutralization);
+    setPkpdHours(p.simulation_hours);
+  };
+
+  const runPkpdSimulation = async () => {
+    setPkpdLoading(true);
+    setError('');
+    try {
+      const res = await api.simulatePkpd({
+        viral_chassis: pkpdChassis,
+        delivery_route: pkpdRoute,
+        initial_dose_tcid50: parseFloat(pkpdDose) || 1e8,
+        tumor_radius_mm: parseFloat(pkpdRadius),
+        desmoplasia_factor: parseFloat(pkpdDesmoplasia),
+        serology_neutralization: pkpdSerology,
+        simulation_hours: parseInt(pkpdHours)
+      });
+      setPkpdResult(res.simulation);
+    } catch (e) {
+      setError('PK/PD Simulation failed: ' + (e.message || 'Error'));
+    } finally {
+      setPkpdLoading(false);
+    }
+  };
+
   const TabButton = ({ id, label }) => (
-    <button onClick={() => { setActiveTab(id); if (id === 'database' && !viralDb) fetchViralDb(); }}
+    <button onClick={() => {
+      setActiveTab(id);
+      if (id === 'database' && !viralDb) fetchViralDb();
+      if (id === 'pkpd' && pkpdPresets.length === 0) fetchPkpdPresets();
+    }}
       className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${activeTab === id ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
       {label}
     </button>
@@ -192,6 +248,7 @@ export default function OncoViralPlannerView({ tumorProfile }) {
         <TabButton id="recommend" label="🏆 Chassis Recommendation" />
         <TabButton id="blueprint" label="🧬 Engineering Blueprint" />
         <TabButton id="database" label="📚 Virus Database" />
+        <TabButton id="pkpd" label="🌊 PK/PD Diffusion (Sprint 6)" />
       </div>
 
       {error && <div className="text-rose-400 text-xs bg-rose-950/30 border border-rose-800 rounded p-2">{error}</div>}
@@ -426,6 +483,361 @@ export default function OncoViralPlannerView({ tumorProfile }) {
               <button onClick={fetchViralDb} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-500">Load Viral Database</button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* TAB: PK/PD Intratumoral Diffusion Solver (Sprint 6) */}
+      {activeTab === 'pkpd' && (
+        <div className="flex flex-col gap-5">
+          {/* Presets Header */}
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+              Curated Clinical Benchmark Scenarios (Click to Preload)
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2">
+              {[
+                {
+                  id: 'pdac',
+                  label: 'Pancreatic PDAC (Dense Stroma)',
+                  viral_chassis: 'VSV_Indiana',
+                  delivery_route: 'INTRATUMORAL_DIRECT',
+                  initial_dose_tcid50: 1e8,
+                  tumor_radius_mm: 18.0,
+                  desmoplasia_factor: 0.85,
+                  serology_neutralization: 'LOW',
+                  simulation_hours: 72,
+                  badge: 'Desmoplasia 0.85'
+                },
+                {
+                  id: 'melanoma',
+                  label: 'Melanoma T-VEC (FDA Approved)',
+                  viral_chassis: 'HSV1_T-VEC_family',
+                  delivery_route: 'INTRATUMORAL_DIRECT',
+                  initial_dose_tcid50: 1e8,
+                  tumor_radius_mm: 12.0,
+                  desmoplasia_factor: 0.30,
+                  serology_neutralization: 'MODERATE',
+                  simulation_hours: 72,
+                  badge: 'Standard Protocol'
+                },
+                {
+                  id: 'breast',
+                  label: 'Breast Cancer (Dr. Halassy MV+VSV)',
+                  viral_chassis: 'Measles_MV_Edmonston',
+                  delivery_route: 'INTRATUMORAL_DIRECT',
+                  initial_dose_tcid50: 1e8,
+                  tumor_radius_mm: 15.0,
+                  desmoplasia_factor: 0.50,
+                  serology_neutralization: 'MODERATE',
+                  simulation_hours: 96,
+                  badge: 'Syncytia Oncolysis'
+                },
+                {
+                  id: 'gbm',
+                  label: 'Glioblastoma Convection-Enhanced',
+                  viral_chassis: 'Adenovirus_Onyx015',
+                  delivery_route: 'INTRATUMORAL_DIRECT',
+                  initial_dose_tcid50: 1e9,
+                  tumor_radius_mm: 20.0,
+                  desmoplasia_factor: 0.20,
+                  serology_neutralization: 'HIGH',
+                  simulation_hours: 72,
+                  badge: 'High IFP Catheter'
+                }
+              ].map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => applyPkpdPreset(p)}
+                  className="p-2.5 text-left bg-slate-950 border border-slate-800 hover:border-cyan-500/50 rounded-lg transition-all group"
+                >
+                  <div className="text-xs font-bold text-slate-200 group-hover:text-cyan-400">{p.label}</div>
+                  <div className="text-[10px] text-cyan-400 font-mono mt-0.5">{p.badge}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            {/* Simulation Parameters Column */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-4">
+              <h2 className="text-sm font-semibold text-white flex items-center justify-between">
+                <span>Reaction-Diffusion Parameters</span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-950 border border-cyan-800 text-cyan-300 font-mono">
+                  5-Variable PDE/ODE
+                </span>
+              </h2>
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Oncolytic Viral Chassis</label>
+                <select
+                  value={pkpdChassis}
+                  onChange={(e) => setPkpdChassis(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                >
+                  <option value="HSV1_T-VEC_family">HSV-1 (T-VEC / Imlygic) — 180nm, 500 burst</option>
+                  <option value="Measles_MV_Edmonston">Measles Virus (MV-Edm) — 150nm, High Syncytia</option>
+                  <option value="VSV_Indiana">VSV (Vesicular Stomatitis) — 70nm, Fast Kinetics</option>
+                  <option value="Adenovirus_Onyx015">Adenovirus (Onyx-015 / Delta-24) — 90nm</option>
+                  <option value="Vaccinia_PexaVec">Vaccinia Virus (Pexa-Vec) — 250nm, Complement Resistant</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Delivery Route</label>
+                <select
+                  value={pkpdRoute}
+                  onChange={(e) => setPkpdRoute(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                >
+                  <option value="INTRATUMORAL_DIRECT">Intratumoral Direct Injection (I.T. Bolus)</option>
+                  <option value="INTRAVENOUS_SYSTEMIC">Systemic Intravenous Infusion (I.V. Transvascular)</option>
+                </select>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs text-slate-400 mb-1">
+                  <span>Tumor Radius ($R_{'{tumor}'}$):</span>
+                  <span className="text-cyan-400 font-mono font-bold">{pkpdRadius} mm (Vol: {(4/3 * Math.PI * Math.pow(pkpdRadius/10, 3)).toFixed(1)} cm³)</span>
+                </div>
+                <input
+                  type="range"
+                  min="5"
+                  max="40"
+                  step="1"
+                  value={pkpdRadius}
+                  onChange={(e) => setPkpdRadius(parseFloat(e.target.value))}
+                  className="w-full accent-cyan-500"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs text-slate-400 mb-1">
+                  <span>Desmoplastic Stroma Factor:</span>
+                  <span className="text-cyan-400 font-mono font-bold">
+                    {pkpdDesmoplasia} ({pkpdDesmoplasia > 0.7 ? 'PDAC Dense' : pkpdDesmoplasia > 0.4 ? 'Moderate' : 'Low/Soft'})
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.05"
+                  max="0.95"
+                  step="0.05"
+                  value={pkpdDesmoplasia}
+                  onChange={(e) => setPkpdDesmoplasia(parseFloat(e.target.value))}
+                  className="w-full accent-cyan-500"
+                />
+                <p className="text-[10px] text-slate-500 mt-0.5">
+                  Reduces effective diffusivity ($D_{'{eff}'} = D_0 \cdot (1 - \text{factor})^{'{1.5}'}$) via collagen barriers.
+                </p>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Pre-Existing Neutralizing Antibodies</label>
+                <div className="grid grid-cols-4 gap-1">
+                  {['NONE', 'LOW', 'MODERATE', 'HIGH'].map((lvl) => (
+                    <button
+                      key={lvl}
+                      type="button"
+                      onClick={() => setPkpdSerology(lvl)}
+                      className={`py-1 text-[11px] font-bold rounded border ${
+                        pkpdSerology === lvl
+                          ? 'bg-cyan-600 text-white border-cyan-500'
+                          : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
+                      }`}
+                    >
+                      {lvl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Initial Dose (TCID50)</label>
+                  <input
+                    type="text"
+                    value={pkpdDose}
+                    onChange={(e) => setPkpdDose(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Simulation Hours</label>
+                  <select
+                    value={pkpdHours}
+                    onChange={(e) => setPkpdHours(parseInt(e.target.value))}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500"
+                  >
+                    <option value="48">48 Hours</option>
+                    <option value="72">72 Hours</option>
+                    <option value="96">96 Hours</option>
+                    <option value="120">120 Hours</option>
+                  </select>
+                </div>
+              </div>
+
+              <button
+                onClick={runPkpdSimulation}
+                disabled={pkpdLoading}
+                className="w-full py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold rounded-lg transition-all shadow-lg shadow-cyan-900/30 flex items-center justify-center gap-2"
+              >
+                {pkpdLoading ? (
+                  <>
+                    <span className="animate-spin">⏳</span>
+                    <span>Integrating Diffusion Equations...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>⚡</span>
+                    <span>Solve Intratumoral Diffusion (PK/PD)</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Simulation Results Column */}
+            <div className="lg:col-span-2 space-y-4">
+              {pkpdResult ? (
+                <>
+                  {/* Metric Strip */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-3">
+                      <div className="text-[10px] uppercase font-bold text-slate-500">Tumor Cell Lysis</div>
+                      <div className="text-2xl font-black text-emerald-400 mt-1 font-mono">
+                        {pkpdResult.tumor_cell_kill_pct}%
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">Direct + bystander kill</div>
+                    </div>
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-3">
+                      <div className="text-[10px] uppercase font-bold text-slate-500">Volume Reduction</div>
+                      <div className="text-2xl font-black text-cyan-400 mt-1 font-mono">
+                        -{pkpdResult.expected_volume_reduction_pct}%
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">Post-clearance shrinkage</div>
+                    </div>
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-3">
+                      <div className="text-[10px] uppercase font-bold text-slate-500">Bystander Radius</div>
+                      <div className="text-2xl font-black text-amber-400 mt-1 font-mono">
+                        {pkpdResult.bystander_killing_radius_mm} <span className="text-xs">mm</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">Zone with ≥50% kill</div>
+                    </div>
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-3">
+                      <div className="text-[10px] uppercase font-bold text-slate-500">Re-Dosing Interval</div>
+                      <div className="text-2xl font-black text-purple-400 mt-1 font-mono">
+                        {pkpdResult.recommended_redosing_interval_days} <span className="text-xs">days</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">Clearance half-life</div>
+                    </div>
+                  </div>
+
+                  {/* Clinical Guidance Banner */}
+                  <div className="p-3 bg-cyan-950/30 border border-cyan-800/60 rounded-xl text-xs text-cyan-200 flex items-start gap-2">
+                    <span className="text-base">💡</span>
+                    <div>
+                      <span className="font-bold">Clinical Translational Insight:</span> {pkpdResult.clinical_guidance}
+                    </div>
+                  </div>
+
+                  {/* Radial Depth Penetration Profile */}
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                          Radial Spatiotemporal Penetration Profile
+                        </h3>
+                        <p className="text-[10px] text-slate-400">
+                          15 concentric shells from Tumor Core (0 mm) to Infiltrating Margin ({pkpdResult.tumor_radius_mm} mm)
+                        </p>
+                      </div>
+                      <a
+                        href={api.getPkpdExportCsvUrl(pkpdResult.simulation_id)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold rounded border border-slate-700 flex items-center gap-1.5 transition-colors"
+                      >
+                        <span>📥</span> Export CSV
+                      </a>
+                    </div>
+
+                    <div className="space-y-2">
+                      {pkpdResult.spatial_depth_profile.map((shell) => (
+                        <div key={shell.shell_index} className="flex items-center gap-2 text-xs">
+                          <span className="w-16 font-mono text-[11px] text-slate-400">
+                            {shell.radius_mm} mm
+                          </span>
+                          <div className="flex-1 bg-slate-950 h-5 rounded-md overflow-hidden flex relative border border-slate-800/60">
+                            {/* Viable cells bar */}
+                            <div
+                              className="h-full bg-emerald-600 transition-all"
+                              style={{ width: `${shell.viability_pct}%` }}
+                            />
+                            {/* Lysed cells fill */}
+                            <div
+                              className="h-full bg-rose-900/60 transition-all flex-1"
+                            />
+                            <div className="absolute inset-0 flex items-center justify-between px-2 text-[10px] font-mono text-white/90">
+                              <span>Viability: {shell.viability_pct}%</span>
+                              <span className="text-cyan-300">Virions: {shell.virion_density_tcid50} /mm³</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 72h Timeline Dynamics */}
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                    <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-2">
+                      {pkpdResult.simulation_hours}h Oncolytic Lysis Dynamics Timeline
+                    </h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs text-slate-300">
+                        <thead className="bg-slate-950 text-[10px] uppercase font-mono text-slate-500 border-b border-slate-800">
+                          <tr>
+                            <th className="py-2 px-3">Time</th>
+                            <th className="py-2 px-3">Viable Cells</th>
+                            <th className="py-2 px-3">Viability %</th>
+                            <th className="py-2 px-3">Infected Cells</th>
+                            <th className="py-2 px-3">Active Virions</th>
+                            <th className="py-2 px-3">Dead Lysed Cells</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800 font-mono text-[11px]">
+                          {pkpdResult.timeline.map((t, idx) => (
+                            <tr key={idx} className="hover:bg-slate-800/50">
+                              <td className="py-1.5 px-3 font-bold text-cyan-400">{t.time_hours}h</td>
+                              <td className="py-1.5 px-3 text-slate-300">{t.viable_cells.toLocaleString()}</td>
+                              <td className="py-1.5 px-3">
+                                <span className={`px-1.5 py-0.5 rounded ${
+                                  t.viable_pct > 70 ? 'bg-emerald-950 text-emerald-400' :
+                                  t.viable_pct > 30 ? 'bg-amber-950 text-amber-400' :
+                                  'bg-rose-950 text-rose-400'
+                                }`}>
+                                  {t.viable_pct}%
+                                </span>
+                              </td>
+                              <td className="py-1.5 px-3 text-amber-300">{t.infected_cells.toLocaleString()}</td>
+                              <td className="py-1.5 px-3 text-cyan-300">{t.free_virions}</td>
+                              <td className="py-1.5 px-3 text-rose-400">{t.dead_lysed_cells.toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-12 text-center text-slate-400 space-y-3">
+                  <div className="text-4xl">🌊</div>
+                  <h3 className="text-sm font-bold text-slate-200">No Simulation Executed Yet</h3>
+                  <p className="text-xs max-w-md mx-auto text-slate-500">
+                    Select a curated scenario above or adjust tumor radius, viral chassis, and desmoplastic stroma parameters, then click <strong>Solve Intratumoral Diffusion</strong> to compute the spatiotemporal reaction-diffusion transport.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

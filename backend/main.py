@@ -2001,6 +2001,195 @@ async def collaboration_websocket(websocket: WebSocket, session_id: str):
         await collab_hub.disconnect(session_id, websocket)
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# SPRINT 6: PK/PD Intratumoral Viral Diffusion (Spec 06) & Retroelements (Spec 12)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class PkpdSimulationRequest(BaseModel):
+    viral_chassis: str = "HSV1_T-VEC_family"
+    delivery_route: str = "INTRATUMORAL_DIRECT"
+    initial_dose_tcid50: float = 1e8
+    tumor_radius_mm: float = 15.0
+    desmoplasia_factor: float = 0.45
+    serology_neutralization: str = "MODERATE"
+    simulation_hours: int = 72
+
+
+class RetronDesignRequest(BaseModel):
+    target_gene: str = "KRAS"
+    target_mutation: str = "c.35G>A (p.G12D)"
+    donor_payload_seq: Optional[str] = ""
+    retron_chassis: str = "Eco1"
+
+
+class DgrLibraryRequest(BaseModel):
+    target_protein_name: str = "Trastuzumab scFv (anti-HER2)"
+    loop_sequence: str = "WGGDGFYAMDY"
+    dgr_system: str = "Bordetella_BPP1"
+
+
+class ModalityComparisonRequest(BaseModel):
+    target_gene: str = "KRAS"
+    target_mutation: str = "G12D"
+    desired_edit_type: str = "POINT_MUTATION"
+    target_length_bp: int = 1
+
+
+@app.post("/api/pkpd/simulate")
+def api_simulate_pkpd(req: PkpdSimulationRequest):
+    """Sprint 6 (Spec 06) — Solves 5-variable reaction-diffusion PK/PD viral transport."""
+    from modules.pkpd_viral_diffusion import simulate_pkpd_viral_diffusion
+    from core.database import get_db
+    db = next(get_db())
+    result = simulate_pkpd_viral_diffusion(
+        viral_chassis=req.viral_chassis,
+        delivery_route=req.delivery_route,
+        initial_dose_tcid50=req.initial_dose_tcid50,
+        tumor_radius_mm=req.tumor_radius_mm,
+        desmoplasia_factor=req.desmoplasia_factor,
+        serology_neutralization=req.serology_neutralization,
+        simulation_hours=req.simulation_hours,
+        db_session=db
+    )
+    return {"status": "success", "simulation": result}
+
+
+@app.get("/api/pkpd/presets")
+def api_get_pkpd_presets():
+    """Sprint 6 (Spec 06) — Returns curated benchmark PK/PD oncolytic presets."""
+    from modules.pkpd_viral_diffusion import CURATED_PKPD_PRESETS, PKPD_VIRUS_PROFILES, DESMOPLASIA_BENCHMARKS
+    return {
+        "status": "success",
+        "presets": CURATED_PKPD_PRESETS,
+        "virus_profiles": list(PKPD_VIRUS_PROFILES.values()),
+        "desmoplasia_benchmarks": DESMOPLASIA_BENCHMARKS
+    }
+
+
+@app.get("/api/pkpd/export/{sim_id}")
+def api_export_pkpd_csv(sim_id: str):
+    """Sprint 6 (Spec 06) — Generates downloadable CSV report for PK/PD simulation."""
+    from fastapi.responses import Response
+    from core.database import get_db
+    from core.models import PkpdSimulationModel
+    from modules.pkpd_viral_diffusion import generate_pkpd_export_csv, simulate_pkpd_viral_diffusion
+    db = next(get_db())
+    rec = db.query(PkpdSimulationModel).filter_by(simulation_id=sim_id).first()
+    if rec and rec.simulation_json:
+        sim_data = rec.simulation_json
+    else:
+        # Fallback simulation
+        sim_data = simulate_pkpd_viral_diffusion()
+    csv_str = generate_pkpd_export_csv(sim_data)
+    return Response(
+        content=csv_str,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={sim_id}_PKPD_Diffusion.csv"}
+    )
+
+
+@app.post("/api/retroelements/retron/design")
+def api_design_retron(req: RetronDesignRequest):
+    """Sprint 6 (Spec 12) — Synthesizes a bacterial Retron msDNA editor construct."""
+    from modules.retroelement_synthesizer import design_retron_editor
+    from core.database import get_db
+    db = next(get_db())
+    result = design_retron_editor(
+        target_gene=req.target_gene,
+        target_mutation=req.target_mutation,
+        donor_payload_seq=req.donor_payload_seq or "",
+        retron_chassis=req.retron_chassis,
+        db_session=db
+    )
+    return {"status": "success", "design": result}
+
+
+@app.post("/api/retroelements/dgr/library")
+def api_design_dgr_library(req: DgrLibraryRequest):
+    """Sprint 6 (Spec 12) — Designs DGR targeted hypermutagenesis diversity library."""
+    from modules.retroelement_synthesizer import design_dgr_mutagenesis_library
+    from core.database import get_db
+    db = next(get_db())
+    result = design_dgr_mutagenesis_library(
+        target_protein_name=req.target_protein_name,
+        loop_sequence=req.loop_sequence,
+        dgr_system=req.dgr_system,
+        db_session=db
+    )
+    return {"status": "success", "library": result}
+
+
+@app.get("/api/retroelements/presets")
+def api_get_retroelement_presets():
+    """Sprint 6 (Spec 12) — Returns benchmark clinical retron and DGR presets."""
+    from modules.retroelement_synthesizer import (
+        CURATED_RETROELEMENT_PRESETS,
+        RETRON_CHASSIS_REGISTRY,
+        DGR_CHASSIS_REGISTRY
+    )
+    return {
+        "status": "success",
+        "presets": CURATED_RETROELEMENT_PRESETS,
+        "retron_chassis": list(RETRON_CHASSIS_REGISTRY.values()),
+        "dgr_systems": list(DGR_CHASSIS_REGISTRY.values())
+    }
+
+
+@app.post("/api/retroelements/modality-comparison")
+def api_compare_modalities(req: ModalityComparisonRequest):
+    """Sprint 6 (Spec 12) — Evaluates 7-modality precision genome editing suitability."""
+    from modules.retroelement_synthesizer import evaluate_editing_modalities
+    result = evaluate_editing_modalities(
+        target_gene=req.target_gene,
+        target_mutation=req.target_mutation,
+        desired_edit_type=req.desired_edit_type,
+        target_length_bp=req.target_length_bp
+    )
+    return {"status": "success", "comparison": result}
+
+
+@app.get("/api/retroelements/export/retron/{design_id}")
+def api_export_retron_csv(design_id: str):
+    """Sprint 6 (Spec 12) — Exports retron msDNA editor construct as CSV."""
+    from fastapi.responses import Response
+    from core.database import get_db
+    from core.models import RetroelementDesignModel
+    from modules.retroelement_synthesizer import generate_retron_export_csv, design_retron_editor
+    db = next(get_db())
+    rec = db.query(RetroelementDesignModel).filter_by(design_id=design_id).first()
+    if rec and rec.sequence_data_json:
+        data = rec.sequence_data_json
+    else:
+        data = design_retron_editor()
+    csv_str = generate_retron_export_csv(data)
+    return Response(
+        content=csv_str,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={design_id}_Retron_msDNA.csv"}
+    )
+
+
+@app.get("/api/retroelements/export/dgr/{design_id}")
+def api_export_dgr_csv(design_id: str):
+    """Sprint 6 (Spec 12) — Exports DGR mutagenesis library as CSV."""
+    from fastapi.responses import Response
+    from core.database import get_db
+    from core.models import RetroelementDesignModel
+    from modules.retroelement_synthesizer import generate_dgr_export_csv, design_dgr_mutagenesis_library
+    db = next(get_db())
+    rec = db.query(RetroelementDesignModel).filter_by(design_id=design_id).first()
+    if rec and rec.sequence_data_json:
+        data = rec.sequence_data_json
+    else:
+        data = design_dgr_mutagenesis_library()
+    csv_str = generate_dgr_export_csv(data)
+    return Response(
+        content=csv_str,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={design_id}_DGR_Library.csv"}
+    )
+
+
 
 @app.websocket("/ws/playground")
 async def playground_websocket(websocket: WebSocket):

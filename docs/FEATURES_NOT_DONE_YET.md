@@ -28,11 +28,11 @@ This document outlines every feature that remains **incomplete**, **partially im
 | [✔ SPRINT 5 DONE]   Live ClinicalTrials.gov Matching, 18 NCI Center Centroids & Haversine Locator        |
 | [✔ SPRINT 5 DONE]   Multi-User Live WebSocket Collaboration Hub, Real-Time Notepad & 21 CFR Sign-Off     |
 | [✔ SPRINT 5 DONE]   Mobile & Tablet Responsive Layouts, Fixed Bottom Nav & Mobile Drawer Adaptation      |
+| [✔ SPRINT 6 DONE]   PK/PD Intratumoral Virus Diffusion 5-Variable Reaction-Diffusion ODE/PDE Solver     |
+| [✔ SPRINT 6 DONE]   Bacterial Retron msDNA Editor & DGR Targeted Hypermutagenesis Synthesizer (A -> N)  |
 +---------------------------------------------------------------------------------------------------------+
 | [⏳ NOT DONE YET]   Genome-Wide 3.2B Base-Pair Alignments (BWA-MEM / Cas-OFFinder full-genome index)   |
 | [⏳ NOT DONE YET]   Standalone NetMHCpan-4.1 / MHCflurry Binary Execution (all 150+ HLA alleles)        |
-| [⏳ NOT DONE YET]   Bacterial Retron & Diversity-Generating Retroelement (DGR) Modalities               |
-| [⏳ NOT DONE YET]   Pharmacokinetic / Pharmacodynamic (PK/PD) Intratumoral Virus Diffusion Solver       |
 +---------------------------------------------------------------------------------------------------------+
 ```
 
@@ -130,23 +130,14 @@ This document outlines every feature that remains **incomplete**, **partially im
 ---
 
 #### 10. Pharmacokinetic / Pharmacodynamic (PK/PD) Intratumoral Virus Diffusion Solver
-* **Current Status:** `viral_tropism_modeler.py` evaluates receptor binding affinity and predicts immune microenvironment shifts (Cold to Hot).
-* **What is Not Done Yet:**
-  - A numerical differential equation solver modeling 72-hour viral dynamics:
-    - Intratumoral pressure and vascular permeability.
-    - Rate of viral replication versus neutralizing antibody clearance.
-    - Predicted bystander killing radius in dense fibrous stroma (e.g., in pancreatic ductal adenocarcinoma).
-* **Why it matters:** Helps clinicians calculate optimal viral dosing and decide between systemic intravenous infusion versus direct ultrasound-guided intratumoral injection.
+* **Current Status:** [✔ COMPLETED IN SPRINT 6 - Feature Spec 06]. `pkpd_viral_diffusion.py` implements a 5-variable spatiotemporal reaction-diffusion numerical solver ($U, I, V, A, K$) across 15 concentric spherical tumor shells with desmoplasia matrix barrier impedance, direct I.T. core bolus vs. transvascular I.V. extravasation modeling, bystander killing radius calculation, and RFC 4180 CSV export. Interactive visual dashboard integrated in `OncoViralPlannerView.jsx` (Tab 4).
 
 ---
 
 ### Category D: UI & Interactive Visualizer Enhancements
 
 #### 11. Bacterial Retron & Diversity-Generating Retroelement (DGR) Modalities
-* **Current Status:** Mentioned on the scientific roadmap (`docs/ROADMAP.md`).
-* **What is Not Done Yet:**
-  - Addition of a Retron editing selector alongside Cas9, base editing, and prime editing.
-  - A DGR sequence analyzer capable of modeling targeted hypermutability for generating antibody diversity libraries.
+* **Current Status:** [✔ COMPLETED IN SPRINT 6 - Feature Spec 12]. `retroelement_synthesizer.py` implements: (1) Retron msDNA Editor Designer (Eco1, Ec86, Ec48, Mx162) with 2'-5' branched guanosine linkage assembly, secondary hairpin $\Delta G$ thermodynamic prediction, and BsaI Golden Gate cloning primers; (2) DGR Targeted Hypermutagenesis Engine (Bordetella BPP-1, TdDGR, VcDGR) with selective adenine mutagenesis ($A \to N$ at $>50\%$ error rate, non-A fidelity $>99.9\%$), theoretical diversity calculation ($4^{N_A}$ variants), and degenerate IUPAC synthesis oligo export; (3) 7-Modality Precision Genome Engineering Comparison Matrix. Integrated in `ArtResearchView.jsx` (Tab 3) with direct 1-click B2B foundry ordering via `SynthesisOrderModal.jsx`.
 
 #### 12. Multi-User Live Collaborative Workspace (Google Docs-Style Co-Editing)
 * **Current Status:** [✔ COMPLETED IN SPRINT 5 - Feature Spec 10]. `collaboration_manager.py` implements an in-memory `CollaborationHub` with Starlette WebSockets (`/ws/collaboration/{session_id}`), live presence tracking, peer cursor position broadcasts, synchronized shared memo pad, threaded clinical notes, and 21 CFR Part 11 compliant consensus sign-offs with SQLite audit tables. Frontend `CollaborationSidebar.jsx` and `useCollaborationWS.js` provide seamless real-time co-review.

@@ -8,7 +8,8 @@ from sqlalchemy import (
     Boolean,
     Text,
     DateTime,
-    ForeignKey
+    ForeignKey,
+    JSON
 )
 from sqlalchemy.orm import relationship
 from core.database import Base
@@ -363,5 +364,43 @@ class CollaborationSignoffModel(Base):
     reviewer_role = Column(String(64), nullable=False)
     rationale_notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+# ── SPRINT 6: PK/PD Viral Diffusion & Retroelement Models ──────────────────────
+class PkpdSimulationModel(Base):
+    """
+    Stores 5-component spatiotemporal oncolytic virus reaction-diffusion PK/PD simulation runs.
+    """
+    __tablename__ = "pkpd_simulations"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    simulation_id = Column(String(64), unique=True, index=True, nullable=False)
+    viral_chassis = Column(String(64), nullable=False)
+    delivery_route = Column(String(64), default="INTRATUMORAL_DIRECT")
+    tumor_radius_mm = Column(Float, nullable=False)
+    desmoplasia_factor = Column(Float, default=0.45)
+    tumor_cell_kill_pct = Column(Float, nullable=False)
+    volume_reduction_pct = Column(Float, nullable=False)
+    bystander_radius_mm = Column(Float, nullable=False)
+    simulation_json = Column(JSON, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class RetroelementDesignModel(Base):
+    """
+    Stores bacterial Retron msDNA editor cassettes and DGR targeted hypermutagenesis libraries.
+    """
+    __tablename__ = "retroelement_designs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    design_id = Column(String(64), unique=True, index=True, nullable=False)
+    modality = Column(String(64), nullable=False) # RETRON_EDITOR or DGR_MUTAGENESIS
+    target_gene = Column(String(128), nullable=False)
+    target_mutation = Column(String(128), nullable=True)
+    chassis = Column(String(64), nullable=False)
+    efficiency_or_diversity = Column(Float, nullable=False)
+    sequence_data_json = Column(JSON, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
 
 

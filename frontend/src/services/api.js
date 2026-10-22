@@ -480,5 +480,65 @@ export const api = {
   async getCollaborationSignoffs(sessionId) {
     const res = await fetch(`${API_BASE}/collaboration/sessions/${encodeURIComponent(sessionId)}/signoffs`);
     return res.json();
+  },
+
+  // ── SPRINT 6: PK/PD Intratumoral Viral Diffusion (Spec 06) ─────────────
+  async simulatePkpd(payload) {
+    const res = await fetch(`${API_BASE}/pkpd/simulate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
+
+  async getPkpdPresets() {
+    const res = await fetch(`${API_BASE}/pkpd/presets`);
+    return res.json();
+  },
+
+  getPkpdExportCsvUrl(simId) {
+    return `${API_BASE}/pkpd/export/${encodeURIComponent(simId)}`;
+  },
+
+  // ── SPRINT 6: Bacterial Retron & DGR Synthesizer (Spec 12) ──────────────
+  async designRetron(payload) {
+    const res = await fetch(`${API_BASE}/retroelements/retron/design`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
+
+  async designDgrLibrary(payload) {
+    const res = await fetch(`${API_BASE}/retroelements/dgr/library`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
+
+  async getRetroelementPresets() {
+    const res = await fetch(`${API_BASE}/retroelements/presets`);
+    return res.json();
+  },
+
+  async compareModalities(payload) {
+    const res = await fetch(`${API_BASE}/retroelements/modality-comparison`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
+
+  getRetronExportCsvUrl(designId) {
+    return `${API_BASE}/retroelements/export/retron/${encodeURIComponent(designId)}`;
+  },
+
+  getDgrExportCsvUrl(designId) {
+    return `${API_BASE}/retroelements/export/dgr/${encodeURIComponent(designId)}`;
   }
 };

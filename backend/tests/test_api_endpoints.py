@@ -367,3 +367,64 @@ def test_api_collaboration_session_flow():
     assert signoff_resp.json()["signoff"]["signoff_decision"] == "APPROVED"
 
 
+def test_api_pkpd_simulation_endpoints():
+    # 1. Presets
+    presets_resp = client.get("/api/pkpd/presets")
+    assert presets_resp.status_code == 200
+    assert len(presets_resp.json()["presets"]) >= 3
+
+    # 2. Simulate
+    sim_payload = {
+        "viral_chassis": "HSV1_T-VEC_family",
+        "delivery_route": "INTRATUMORAL_DIRECT",
+        "initial_dose_tcid50": 1e8,
+        "tumor_radius_mm": 12.0,
+        "desmoplasia_factor": 0.35,
+        "simulation_hours": 72
+    }
+    sim_resp = client.post("/api/pkpd/simulate", json=sim_payload)
+    assert sim_resp.status_code == 200
+    sim_data = sim_resp.json()["simulation"]
+    assert sim_data["tumor_cell_kill_pct"] > 0.0
+    assert len(sim_data["spatial_depth_profile"]) == 15
+
+
+def test_api_retroelements_endpoints():
+    # 1. Presets
+    presets_resp = client.get("/api/retroelements/presets")
+    assert presets_resp.status_code == 200
+    assert len(presets_resp.json()["presets"]) >= 3
+
+    # 2. Retron design
+    retron_payload = {
+        "target_gene": "KRAS",
+        "target_mutation": "c.35G>A (p.G12D)",
+        "retron_chassis": "Eco1"
+    }
+    retron_resp = client.post("/api/retroelements/retron/design", json=retron_payload)
+    assert retron_resp.status_code == 200
+    assert retron_resp.json()["design"]["modality"] == "RETRON_MSDNA_EDITOR"
+
+    # 3. DGR library
+    dgr_payload = {
+        "target_protein_name": "Anti-HER2 scFv",
+        "loop_sequence": "WGGDGFYAMDY",
+        "dgr_system": "Bordetella_BPP1"
+    }
+    dgr_resp = client.post("/api/retroelements/dgr/library", json=dgr_payload)
+    assert dgr_resp.status_code == 200
+    assert dgr_resp.json()["library"]["modality"] == "DGR_MUTAGENESIS_LIBRARY"
+
+    # 4. Modality comparison
+    comp_payload = {
+        "target_gene": "KRAS",
+        "target_mutation": "G12D",
+        "desired_edit_type": "POINT_MUTATION",
+        "target_length_bp": 1
+    }
+    comp_resp = client.post("/api/retroelements/modality-comparison", json=comp_payload)
+    assert comp_resp.status_code == 200
+    assert len(comp_resp.json()["comparison"]["modalities_ranked"]) == 7
+
+
+
