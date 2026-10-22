@@ -254,3 +254,42 @@ class ScRnaDatasetModel(Base):
     n_clusters = Column(Integer, default=0)
     results_json = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class ArtConstructModel(Base):
+    """
+    Stores synthetic Phage ART tandem repeat array constructs (Feature Spec 07).
+    """
+    __tablename__ = "art_constructs"
+
+    id = Column(String(64), primary_key=True, index=True)
+    gene_name = Column(String(128), index=True, nullable=False)
+    art_system_type = Column(String(64), default="TYPE_I_LISTERIA")
+    input_length_bp = Column(Integer, default=0)
+    total_array_length_bp = Column(Integer, default=0)
+    unit_count = Column(Integer, default=0)
+    target_cell_type = Column(String(128), default="Primary CD34+ HSPCs")
+    predicted_efficiency = Column(Float, default=0.0)
+    fasta_sequence = Column(Text, nullable=True)
+    construct_json = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class SynthesisOrderModel(Base):
+    """
+    Stores automated B2B synthesis checkout orders from IDT/Twist/GenScript (Feature Spec 08).
+    """
+    __tablename__ = "synthesis_orders"
+
+    order_id = Column(String(64), primary_key=True, index=True)
+    vendor = Column(String(64), index=True, nullable=False) # IDT, Twist, GenScript
+    user_id = Column(String(64), index=True, default="RESEARCHER_USER_01")
+    status = Column(String(64), index=True, default="SUBMITTED") # SUBMITTED, MANUFACTURING, QUALITY_CONTROL, SHIPPED
+    total_price_usd = Column(Float, default=0.0)
+    tracking_number = Column(String(64), nullable=True)
+    carrier = Column(String(64), default="FedEx Priority Overnight")
+    items_json = Column(Text, nullable=True)
+    shipping_address_json = Column(Text, nullable=True)
+    estimated_delivery = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+

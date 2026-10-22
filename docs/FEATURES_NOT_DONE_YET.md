@@ -19,16 +19,16 @@ This document outlines every feature that remains **incomplete**, **partially im
 | [✔ COMPLETED]       Golden Gate Cloning Primers, AAV Packaging Checker, Stem Cell Teratoma Risk         |
 | [✔ COMPLETED]       Allele-Specific KRAS/BRAF Guides, 8-Axis Tumor Radar, Oncolytic Viral Blueprints     |
 | [✔ COMPLETED]       WebSocket Moran Process Simulator, Binding Animator, 21 CFR Part 11 Audit Trail    |
+| [✔ SPRINT 1 DONE]   True Atomistic WebGL 3D Molecule Viewer (Mol* coordinate rendering & PDB 4ZT0)      |
+| [✔ SPRINT 2 DONE]   Multi-Omics RNA-seq Expression Matrix Ingestion & Tissue Filtering (TCGA / GTEx)    |
+| [✔ SPRINT 3 DONE]   Single-Cell RNA-seq (scRNA-seq) Cell Clustering, Cancer Stemness & 10x Visium Grid  |
+| [✔ SPRINT 3 DONE]   CAR-T Tumor Surface Antigen Identification Engine & 2nd-Gen Construct Blueprint     |
+| [✔ SPRINT 4 DONE]   In-Silico Phage ART Forward DNA Writing Construct Designer (DMD, CFTR, HBB)         |
+| [✔ SPRINT 4 DONE]   Automated Commercial Synthesis B2B API Checkout (IDT / Twist / GenScript Direct)    |
 +---------------------------------------------------------------------------------------------------------+
-| [⏳ NOT DONE YET]   True Atomistic WebGL 3D Molecule Viewer (Mol* / 3Dmol.js coordinate rendering)     |
 | [⏳ NOT DONE YET]   Genome-Wide 3.2B Base-Pair Alignments (BWA-MEM / Cas-OFFinder full-genome index)   |
-| [⏳ NOT DONE YET]   Multi-Omics RNA-seq Expression Matrix Upload & Expression Filtering                 |
-| [⏳ NOT DONE YET]   Single-Cell RNA-seq (scRNA-seq) Cell Clustering & Spatial Transcriptomics           |
 | [⏳ NOT DONE YET]   Standalone NetMHCpan-4.1 / MHCflurry Binary Execution (all 150+ HLA alleles)        |
-| [⏳ NOT DONE YET]   Automated Commercial Synthesis B2B API Checkout (IDT / Twist / GenScript Direct)    |
 | [⏳ NOT DONE YET]   Live ClinicalTrials.gov API v2 Real-Time Patient Location Matching                  |
-| [⏳ NOT DONE YET]   CAR-T Tumor Surface Antigen Identification Engine                                   |
-| [⏳ NOT DONE YET]   In-Silico Phage ART Direct DNA Writing Construct Designer                           |
 | [⏳ NOT DONE YET]   Bacterial Retron & Diversity-Generating Retroelement (DGR) Modalities               |
 | [⏳ NOT DONE YET]   Pharmacokinetic / Pharmacodynamic (PK/PD) Intratumoral Virus Diffusion Solver       |
 | [⏳ NOT DONE YET]   Multi-User Collaborative Live Session Sharing (Google Docs-style team editing)      |

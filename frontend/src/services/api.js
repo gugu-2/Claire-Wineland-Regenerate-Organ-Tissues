@@ -359,5 +359,54 @@ export const api = {
   async getSpatialVisium(spotsX = 24, spotsY = 18) {
     const res = await fetch(`${API_BASE}/scrna/spatial-visium?spots_x=${spotsX}&spots_y=${spotsY}`);
     return res.json();
+  },
+
+  // ── SPRINT 4: ART Construct Designer & Automated B2B Synthesis ───────────
+
+  async designArtConstruct(payload) {
+    const res = await fetch(`${API_BASE}/art/design-construct`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
+
+  async getArtConstruct(constructId) {
+    const res = await fetch(`${API_BASE}/art/construct/${encodeURIComponent(constructId)}`);
+    return res.json();
+  },
+
+  async getArtPresets() {
+    const res = await fetch(`${API_BASE}/art/presets`);
+    return res.json();
+  },
+
+  async getSynthesisQuote(payload) {
+    const res = await fetch(`${API_BASE}/synthesis/quote`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
+
+  async placeSynthesisOrder(payload) {
+    const res = await fetch(`${API_BASE}/synthesis/order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
+
+  async listSynthesisOrders() {
+    const res = await fetch(`${API_BASE}/synthesis/orders`);
+    return res.json();
+  },
+
+  async getSynthesisOrderStatus(orderId) {
+    const res = await fetch(`${API_BASE}/synthesis/orders/${encodeURIComponent(orderId)}/status`);
+    return res.json();
   }
 };

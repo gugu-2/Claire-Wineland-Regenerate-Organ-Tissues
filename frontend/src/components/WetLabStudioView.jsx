@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TestTube, Download, ChevronRight, CheckCircle2, AlertTriangle, Fingerprint, Dna, Settings2, Activity, FlaskConical, Stethoscope, Users, ShoppingCart, ArrowRight, Package, Scissors, Copy, Check, ShieldAlert, Info, Layers, Sparkles } from 'lucide-react';
 import { api } from '../services/api';
+import SynthesisOrderModal from './SynthesisOrderModal';
 
 export default function WetLabStudioView({
   targetGene = 'CCR5',
@@ -18,6 +19,7 @@ export default function WetLabStudioView({
   const [selectedPlasmid, setSelectedPlasmid] = useState('PX459_BbsI');
   const [oligoData, setOligoData] = useState(null);
   const [copiedKey, setCopiedKey] = useState(null);
+  const [isSynthesisModalOpen, setIsSynthesisModalOpen] = useState(false);
 
   // Sync when candidates or preselected guide changes
   useEffect(() => {
@@ -350,6 +352,17 @@ export default function WetLabStudioView({
                     {oligoData.synthetic_modified_sgRNA.chemically_modified_notation}
                   </div>
                 </div>
+
+                {/* Direct B2B Synthesis Checkout Button (Spec 08) */}
+                <div className="pt-2 flex justify-end">
+                  <button
+                    onClick={() => setIsSynthesisModalOpen(true)}
+                    className="px-4 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-lg text-xs font-bold flex items-center gap-2 shadow-lg shadow-cyan-600/20 transition-all"
+                  >
+                    <ShoppingCart className="w-4 h-4" />
+                    <span>Order from Synthesis Partner (IDT / Twist / GenScript)</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -647,7 +660,7 @@ export default function WetLabStudioView({
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => alert("Enterprise Integration: Connecting to Synthego/IDT API for automated 1-click cart fulfillment...")}
+            onClick={() => setIsSynthesisModalOpen(true)}
             className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md shadow-indigo-500/20"
           >
             <ShoppingCart className="w-4 h-4" /> 1-Click Synthego/IDT Order
@@ -674,6 +687,21 @@ export default function WetLabStudioView({
           </button>
         )}
       </div>
+
+      {/* Synthesis Order Modal */}
+      <SynthesisOrderModal
+        isOpen={isSynthesisModalOpen}
+        onClose={() => setIsSynthesisModalOpen(false)}
+        initialSequences={
+          oligoData ? [
+            { name: `${oligoData.guide_id}_Top`, sequence: oligoData.top_oligo.sequence, scale: '25nmol', purification: 'Standard Desalting' },
+            { name: `${oligoData.guide_id}_Bottom`, sequence: oligoData.bottom_oligo.sequence, scale: '25nmol', purification: 'Standard Desalting' }
+          ] : [
+            { name: 'Oligo_Top', sequence: 'CACCGTGGTGGCTGGCGGCGGCC', scale: '25nmol', purification: 'Standard Desalting' },
+            { name: 'Oligo_Bottom', sequence: 'AAACGGCCGCCGCCAGCCACCAC', scale: '25nmol', purification: 'Standard Desalting' }
+          ]
+        }
+      />
     </div>
   );
 }

@@ -59,7 +59,19 @@ from modules.rnaseq_processor import (
     query_gene_expression,
     load_curated_benchmark_profile
 )
-from core.models import NeoantigenPredictionModel, ExpressionProfileModel, ScRnaDatasetModel
+from core.models import NeoantigenPredictionModel, ExpressionProfileModel, ScRnaDatasetModel, ArtConstructModel, SynthesisOrderModel
+from modules.art_construct_designer import (
+    design_art_array,
+    ART_SYSTEM_PRESETS,
+    THERAPEUTIC_GENE_PRESETS,
+    CELL_TYPE_EFFICIENCY_BASELINES
+)
+from modules.synthesis_api_client import (
+    calculate_synthesis_quote,
+    submit_synthesis_order,
+    PRICING_MODELS
+)
+from modules.synthesis_validator import validate_oligo_sequence
 from modules.cart_engine import (
     identify_cart_candidates,
     get_cart_blueprint,
@@ -1495,6 +1507,184 @@ def api_get_spatial_visium(spots_x: Optional[int] = 24, spots_y: Optional[int] =
         return generate_spatial_visium_grid(n_spots_x=spots_x, n_spots_y=spots_y)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── SPRINT 4: IN-SILICO PHAGE ART CONSTRUCT DESIGNER (Spec 07) ───────────────
+
+class ArtConstructDesignRequest(BaseModel):
+    cDNA_sequence: str
+    gene_name: Optional[str] = "THERAPEUTIC_GENE"
+    art_system_type: Optional[str] = "TYPE_I_LISTERIA"
+    target_unit_size: Optional[int] = 200
+    target_cell_type: Optional[str] = "Primary CD34+ HSPCs"
+
+@app.post("/api/art/design-construct")
+def api_design_art_construct(req: ArtConstructDesignRequest):
+    """Sprint 4 (Spec 07) — In-Silico Phage ART Construct Designer for Forward DNA Writing."""
+    try:
+        res = design_art_array(
+            cDNA_sequence=req.cDNA_sequence,
+            gene_name=req.gene_name or "THERAPEUTIC_GENE",
+            art_system_type=req.art_system_type or "TYPE_I_LISTERIA",
+            target_unit_size=req.target_unit_size or 200,
+            target_cell_type=req.target_cell_type or "Primary CD34+ HSPCs"
+        )
+        if res.get("status") == "error":
+            raise HTTPException(status_code=400, detail=res.get("message"))
+            
+        # Persist construct in SQLite
+        from core.database import get_db
+        db = next(get_db())
+        try:
+            db_construct = ArtConstructModel(
+                id=res["construct_id"],
+                gene_name=res["gene_name"],
+                art_system_type=req.art_system_type or "TYPE_I_LISTERIA",
+                input_length_bp=res["input_cDNA_length_bp"],
+                total_array_length_bp=res["total_array_length_bp"],
+                unit_count=res["total_units"],
+                target_cell_type=res["selected_cell_type"],
+                predicted_efficiency=res["predicted_insertion_efficiency"],
+                fasta_sequence=res["fasta_export"],
+                construct_json=json.dumps(res)
+            )
+            db.add(db_construct)
+            db.commit()
+        except Exception:
+            pass
+        return res
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/art/construct/{construct_id}")
+def api_get_art_construct(construct_id: str):
+    """Sprint 4 (Spec 07) — Fetches a saved ART construct by ID."""
+    from core.database import get_db
+    db = next(get_db())
+    record = db.query(ArtConstructModel).filter(ArtConstructModel.id == construct_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail=f"ART construct '{construct_id}' not found")
+    return json.loads(record.construct_json) if record.construct_json else {}
+
+@app.get("/api/art/construct/{construct_id}/fasta")
+def api_get_art_construct_fasta(construct_id: str):
+    """Sprint 4 (Spec 07) — Returns raw FASTA string for downloading."""
+    from core.database import get_db
+    from fastapi.responses import PlainTextResponse
+    db = next(get_db())
+    record = db.query(ArtConstructModel).filter(ArtConstructModel.id == construct_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail=f"ART construct '{construct_id}' not found")
+    return PlainTextResponse(record.fasta_sequence or "")
+
+@app.get("/api/art/presets")
+def api_get_art_presets():
+    """Sprint 4 (Spec 07) — Returns reference therapeutic cDNAs, cell types, and ART systems."""
+    return {
+        "status": "success",
+        "art_systems": ART_SYSTEM_PRESETS,
+        "therapeutic_genes": THERAPEUTIC_GENE_PRESETS,
+        "cell_types": CELL_TYPE_EFFICIENCY_BASELINES
+    }
+
+
+# ── SPRINT 4: AUTOMATED B2B SYNTHESIS API (Spec 08) ──────────────────────────
+
+class SynthesisQuoteRequest(BaseModel):
+    sequences: List[Dict[str, Any]]
+    preferred_vendor: Optional[str] = None
+
+class SynthesisOrderRequest(BaseModel):
+    vendor: str
+    sequences: List[Dict[str, Any]]
+    shipping_address: Dict[str, str]
+    user_id: Optional[str] = "RESEARCHER_USER_01"
+
+@app.post("/api/synthesis/quote")
+def api_get_synthesis_quote(req: SynthesisQuoteRequest):
+    """Sprint 4 (Spec 08) — Live price quoting from IDT, Twist, and GenScript with biosecurity pre-clearance."""
+    try:
+        res = calculate_synthesis_quote(req.sequences, preferred_vendor=req.preferred_vendor)
+        if res.get("status") == "biosecurity_rejection":
+            raise HTTPException(status_code=403, detail=res.get("message"))
+        return res
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/synthesis/order")
+def api_place_synthesis_order(req: SynthesisOrderRequest):
+    """Sprint 4 (Spec 08) — Places oligonucleotide/gene synthesis order with partner facility."""
+    try:
+        from core.database import get_db
+        db = next(get_db())
+        res = submit_synthesis_order(
+            vendor=req.vendor,
+            sequences=req.sequences,
+            shipping_address=req.shipping_address,
+            user_id=req.user_id or "RESEARCHER_USER_01",
+            db_session=db
+        )
+        if res.get("status") == "biosecurity_rejection":
+            raise HTTPException(status_code=403, detail=res.get("message"))
+        return res
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/synthesis/orders")
+def api_list_synthesis_orders():
+    """Sprint 4 (Spec 08) — Returns local history of synthesis orders."""
+    try:
+        from core.database import get_db
+        db = next(get_db())
+        records = db.query(SynthesisOrderModel).order_by(SynthesisOrderModel.created_at.desc()).all()
+        return {
+            "status": "success",
+            "total_orders": len(records),
+            "orders": [
+                {
+                    "order_id": r.order_id,
+                    "vendor": r.vendor,
+                    "status": r.status,
+                    "total_price_usd": r.total_price_usd,
+                    "tracking_number": r.tracking_number,
+                    "carrier": r.carrier,
+                    "estimated_delivery": r.estimated_delivery.isoformat() if r.estimated_delivery else None,
+                    "created_at": r.created_at.isoformat() if r.created_at else None,
+                    "items": json.loads(r.items_json) if r.items_json else []
+                }
+                for r in records
+            ]
+        }
+    except Exception as e:
+        return {"status": "success", "total_orders": 0, "orders": []}
+
+@app.get("/api/synthesis/orders/{order_id}/status")
+def api_get_order_status(order_id: str):
+    """Sprint 4 (Spec 08) — Returns live manufacturing and shipping status for an order."""
+    from core.database import get_db
+    from modules.synthesis_api_client import get_synthesis_order_status
+    db = next(get_db())
+    record = db.query(SynthesisOrderModel).filter(SynthesisOrderModel.order_id == order_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail=f"Order '{order_id}' not found")
+    progression = get_synthesis_order_status(order_id, db_session=db)
+    return {
+        "status": "success",
+        "order_id": record.order_id,
+        "vendor": record.vendor,
+        "lifecycle_status": progression.get("status", record.status),
+        "lifecycle_stage": progression.get("lifecycle_stage"),
+        "tracking_number": record.tracking_number,
+        "carrier": record.carrier,
+        "estimated_delivery": record.estimated_delivery.isoformat() if record.estimated_delivery else None
+    }
+
 
 
 @app.websocket("/ws/playground")

@@ -228,3 +228,75 @@ def test_api_scrna_upload():
     assert data["status"] == "success"
     assert data["total_cells"] == 20
     assert len(data["cell_points"]) == 20
+
+# ── Sprint 4 API Tests (Spec 07 & Spec 08) ────────────────────────────────────
+
+def test_api_art_design_construct():
+    payload = {
+        "cDNA_sequence": "ATGCAGAGGTCGCCTCTGGAAAAGGCCAGCGTTGTCTCCAAACTTTTTTTCAGCTGGACCAGACCAATTTTGAGG" * 5,
+        "gene_name": "CFTR_TEST",
+        "art_system_type": "TYPE_I_LISTERIA",
+        "target_unit_size": 200,
+        "target_cell_type": "Primary CD34+ HSPCs"
+    }
+    response = client.post("/api/art/design-construct", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["gene_name"] == "CFTR_TEST"
+    assert data["total_units"] >= 2
+    assert "fasta_export" in data
+
+def test_api_art_presets():
+    response = client.get("/api/art/presets")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert "art_systems" in data
+    assert "therapeutic_genes" in data
+
+def test_api_synthesis_quote():
+    payload = {
+        "sequences": [
+            {"name": "sgRNA_01", "sequence": "CACCGCATGCTAGTAGTCGTAGTC", "scale": "25nmol", "purification": "Standard Desalting"}
+        ]
+    }
+    response = client.post("/api/synthesis/quote", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert "IDT" in data["quotes"]
+
+def test_api_synthesis_order_and_history():
+    payload = {
+        "vendor": "IDT",
+        "sequences": [
+            {"name": "sgRNA_01", "sequence": "CACCGCATGCTAGTAGTCGTAGTC", "scale": "25nmol", "purification": "Standard Desalting"}
+        ],
+        "shipping_address": {
+            "institution": "Stanford University",
+            "street": "291 Campus Dr",
+            "city": "Stanford",
+            "state": "CA",
+            "zip": "94305"
+        }
+    }
+    response = client.post("/api/synthesis/order", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    order_id = data["order"]["order_id"]
+
+    # Query history
+    hist_resp = client.get("/api/synthesis/orders")
+    assert hist_resp.status_code == 200
+    hist_data = hist_resp.json()
+    assert hist_data["status"] == "success"
+    assert hist_data["total_orders"] >= 1
+
+    # Query status
+    status_resp = client.get(f"/api/synthesis/orders/{order_id}/status")
+    assert status_resp.status_code == 200
+    stat_data = status_resp.json()
+    assert "SUBMITTED" in stat_data["lifecycle_status"]
+
