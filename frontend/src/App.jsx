@@ -12,6 +12,9 @@ import ScRnaView from './components/ScRnaView';
 import OncoViralPlannerView from './components/OncoViralPlannerView';
 import ArtResearchView from './components/ArtResearchView';
 import PlaygroundView from './components/PlaygroundView';
+import ClinicalTrialsMatcher from './components/ClinicalTrialsMatcher';
+import CollaborationSidebar from './components/CollaborationSidebar';
+import MobileBottomNav from './components/MobileBottomNav';
 import { api } from './services/api';
 
 const FALLBACK_SAMPLES = [
@@ -409,7 +412,7 @@ export default function App() {
         selectedSample={selectedSample}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 lg:pb-6">
         {activeTab === 'sample' && (
           <SampleIntakeView
             samples={samples}
@@ -492,7 +495,28 @@ export default function App() {
         {activeTab === 'playground' && (
           <PlaygroundView />
         )}
+
+        {activeTab === 'clinical-trials' && (
+          <ClinicalTrialsMatcher
+            targetGene={selectedSample?.target_gene || 'KRAS'}
+            targetMutation={'G12D'}
+            cancerType={'Pancreatic Ductal Adenocarcinoma'}
+          />
+        )}
       </main>
+
+      {/* Real-Time Multi-User Collaboration Sidebar (Spec 10) */}
+      <CollaborationSidebar
+        activeGene={selectedSample?.target_gene || 'KRAS'}
+        sampleId={selectedSample?.sample_id || 'PT_PANCREAS_001'}
+        candidateGuides={candidateGuides}
+      />
+
+      {/* Mobile & Tablet Bottom Navigation Bar (Spec 11) */}
+      <MobileBottomNav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+      />
 
       {/* Human Expert Review Modal */}
       <ExpertReviewModal

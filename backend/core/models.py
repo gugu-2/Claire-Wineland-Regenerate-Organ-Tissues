@@ -293,3 +293,75 @@ class SynthesisOrderModel(Base):
     estimated_delivery = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
+
+# ── SPRINT 5: Clinical Trials & Live Collaboration Models ───────────────────────
+
+class ClinicalTrialSearchModel(Base):
+    """
+    Stores historical ClinicalTrials.gov search queries, geographic distance filtering,
+    and precision oncology match scores (Feature Spec 09).
+    """
+    __tablename__ = "clinical_trial_searches"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    search_id = Column(String(64), index=True, nullable=False)
+    gene = Column(String(64), nullable=False, index=True)
+    mutation = Column(String(64), nullable=True)
+    cancer_type = Column(String(128), nullable=True)
+    patient_zip = Column(String(32), nullable=True)
+    radius_miles = Column(Float, default=100.0)
+    result_count = Column(Integer, default=0)
+    within_radius_count = Column(Integer, default=0)
+    results_json = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class CollaborationSessionModel(Base):
+    """
+    Stores active or persisted multi-user collaborative workspace sessions (Feature Spec 10).
+    """
+    __tablename__ = "collaboration_sessions"
+
+    session_id = Column(String(64), primary_key=True, index=True)
+    session_name = Column(String(128), default="Precision Oncology Tumor Board")
+    host_user_id = Column(String(64), default="Dr. Lead Oncologist")
+    target_gene = Column(String(32), nullable=True)
+    sample_id = Column(String(64), nullable=True)
+    active_users_json = Column(Text, default="[]")
+    shared_notepad = Column(Text, default="")
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
+class CollaborationNoteModel(Base):
+    """
+    Stores shared threaded session notes and annotations left by multidisciplinary team members.
+    """
+    __tablename__ = "collaboration_notes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(64), ForeignKey("collaboration_sessions.session_id"), index=True)
+    author_id = Column(String(64), nullable=False)
+    author_name = Column(String(128), nullable=False)
+    author_role = Column(String(64), default="Oncologist") # Oncologist, Bioinformatician, Lab Lead, Clinical Geneticist
+    content = Column(Text, nullable=False)
+    pinned = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class CollaborationSignoffModel(Base):
+    """
+    Stores 21 CFR Part 11 compliant multidisciplinary consensus sign-offs for candidate CRISPR guides / constructs.
+    """
+    __tablename__ = "collaboration_signoffs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(64), ForeignKey("collaboration_sessions.session_id"), index=True)
+    candidate_guide_id = Column(String(64), nullable=False, index=True)
+    signoff_decision = Column(String(32), nullable=False) # APPROVED, REJECTED, PROVISIONAL
+    reviewer_name = Column(String(128), nullable=False)
+    reviewer_role = Column(String(64), nullable=False)
+    rationale_notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+

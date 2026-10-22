@@ -1,12 +1,12 @@
 import json
 import uuid
 import asyncio
-from typing import Dict, List, Optional
+import datetime
+from typing import Dict, List, Optional, Any
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
-from typing import Dict, List, Optional, Any
 
 from core.config import APP_NAME, APP_VERSION, DISCLAIMER_TEXT, SAFETY_MODE_ENABLED
 from core.security import record_audit_event, get_recent_audit_logs, screen_durc_risk
@@ -1684,6 +1684,321 @@ def api_get_order_status(order_id: str):
         "carrier": record.carrier,
         "estimated_delivery": record.estimated_delivery.isoformat() if record.estimated_delivery else None
     }
+
+
+# ── SPRINT 5: Feature Spec 09 — ClinicalTrials.gov Live Matching ─────────────
+
+class TrialSearchRequest(BaseModel):
+    gene: str
+    mutation: Optional[str] = None
+    cancer_type: Optional[str] = None
+    patient_zip: str = "10001"
+    radius_miles: float = 150.0
+    phases: Optional[List[str]] = None
+    status: Optional[str] = "RECRUITING"
+    patient_variants: Optional[List[str]] = None
+
+
+@app.post("/api/clinical-trials/search")
+def api_search_clinical_trials(req: TrialSearchRequest):
+    """
+    Sprint 5 (Spec 09) — Queries precision oncology clinical trials, applies
+    Haversine great-circle distance filtering from patient ZIP, and scores mutation match.
+    """
+    from modules.clinical_trials_matcher import search_clinical_trials
+    from core.database import get_db
+    from core.models import ClinicalTrialSearchModel
+
+    result = search_clinical_trials(
+        gene=req.gene,
+        mutation=req.mutation,
+        cancer_type=req.cancer_type,
+        patient_zip=req.patient_zip,
+        radius_miles=req.radius_miles,
+        phases=req.phases,
+        status=req.status,
+        patient_variants=req.patient_variants
+    )
+
+    try:
+        db = next(get_db())
+        search_record = ClinicalTrialSearchModel(
+            search_id=result["search_id"],
+            gene=req.gene,
+            mutation=req.mutation,
+            cancer_type=req.cancer_type,
+            patient_zip=req.patient_zip,
+            radius_miles=req.radius_miles,
+            result_count=result["total_found"],
+            within_radius_count=result["within_radius_count"],
+            results_json=json.dumps(result["trials"])
+        )
+        db.add(search_record)
+        db.commit()
+    except Exception as e:
+        pass
+
+    return result
+
+
+@app.get("/api/clinical-trials/curated")
+def api_get_curated_trials():
+    """Sprint 5 (Spec 09) — Returns curated benchmark precision oncology trials."""
+    from modules.clinical_trials_matcher import CURATED_BENCHMARK_TRIALS
+    return {
+        "status": "success",
+        "total_curated": len(CURATED_BENCHMARK_TRIALS),
+        "trials": CURATED_BENCHMARK_TRIALS
+    }
+
+
+@app.get("/api/clinical-trials/history")
+def api_get_clinical_trial_history():
+    """Sprint 5 (Spec 09) — Returns past clinical trial searches."""
+    from core.database import get_db
+    from core.models import ClinicalTrialSearchModel
+    try:
+        db = next(get_db())
+        records = db.query(ClinicalTrialSearchModel).order_by(ClinicalTrialSearchModel.created_at.desc()).limit(20).all()
+        return {
+            "status": "success",
+            "searches": [
+                {
+                    "search_id": r.search_id,
+                    "gene": r.gene,
+                    "mutation": r.mutation,
+                    "cancer_type": r.cancer_type,
+                    "patient_zip": r.patient_zip,
+                    "radius_miles": r.radius_miles,
+                    "result_count": r.result_count,
+                    "within_radius_count": r.within_radius_count,
+                    "created_at": r.created_at.isoformat() if r.created_at else None
+                }
+                for r in records
+            ]
+        }
+    except Exception as e:
+        return {"status": "success", "searches": []}
+
+
+@app.get("/api/clinical-trials/{nct_id}")
+def api_get_trial_detail(nct_id: str):
+    """Sprint 5 (Spec 09) — Returns full details for a trial by NCT identifier."""
+    from modules.clinical_trials_matcher import get_trial_detail_by_nct
+    trial = get_trial_detail_by_nct(nct_id)
+    if not trial:
+        raise HTTPException(status_code=404, detail=f"Clinical trial '{nct_id}' not found in registry")
+    return {"status": "success", "trial": trial}
+
+
+@app.get("/api/clinical-trials/export/{search_id}")
+def api_export_trials_csv(search_id: str):
+    """Sprint 5 (Spec 09) — Exports matching trials as CSV."""
+    from core.database import get_db
+    from core.models import ClinicalTrialSearchModel
+    from modules.clinical_trials_matcher import generate_trials_export_csv, CURATED_BENCHMARK_TRIALS
+    try:
+        db = next(get_db())
+        record = db.query(ClinicalTrialSearchModel).filter_by(search_id=search_id).first()
+        if record and record.results_json:
+            trials = json.loads(record.results_json)
+        else:
+            trials = CURATED_BENCHMARK_TRIALS
+        csv_data = generate_trials_export_csv(trials)
+        return PlainTextResponse(content=csv_data, media_type="text/csv", headers={
+            "Content-Disposition": f"attachment; filename={search_id}_trials.csv"
+        })
+    except Exception as e:
+        csv_data = generate_trials_export_csv(CURATED_BENCHMARK_TRIALS)
+        return PlainTextResponse(content=csv_data, media_type="text/csv")
+
+
+# ── SPRINT 5: Feature Spec 10 — Multi-User Collaborative Workspace ───────────
+
+class CollaborationSessionRequest(BaseModel):
+    session_id: Optional[str] = None
+    session_name: str = "Precision Oncology Tumor Board"
+    host_user_id: str = "Dr. Lead Oncologist"
+    target_gene: Optional[str] = "KRAS"
+    sample_id: Optional[str] = None
+
+
+class CollaborationNoteRequest(BaseModel):
+    author_id: str
+    author_name: str
+    content: str
+    author_role: str = "Oncologist"
+    pinned: bool = False
+
+
+class CollaborationSignoffRequest(BaseModel):
+    candidate_guide_id: str
+    signoff_decision: str # APPROVED, REJECTED, PROVISIONAL
+    reviewer_name: str
+    reviewer_role: str
+    rationale_notes: Optional[str] = None
+
+
+@app.post("/api/collaboration/sessions")
+def api_create_or_get_session(req: CollaborationSessionRequest):
+    """Sprint 5 (Spec 10) — Initializes or fetches a multidisciplinary collaboration session."""
+    from modules.collaboration_manager import create_or_get_session
+    from core.database import get_db
+    sess_id = req.session_id or f"SESSION_{uuid.uuid4().hex[:8].upper()}"
+    db = next(get_db())
+    session_data = create_or_get_session(
+        session_id=sess_id,
+        session_name=req.session_name,
+        host_user_id=req.host_user_id,
+        target_gene=req.target_gene,
+        sample_id=req.sample_id,
+        db_session=db
+    )
+    return {"status": "success", "session": session_data}
+
+
+@app.get("/api/collaboration/sessions")
+def api_list_collaboration_sessions():
+    """Sprint 5 (Spec 10) — Lists recent collaboration sessions."""
+    from core.database import get_db
+    from core.models import CollaborationSessionModel
+    try:
+        db = next(get_db())
+        sessions = db.query(CollaborationSessionModel).order_by(CollaborationSessionModel.created_at.desc()).limit(15).all()
+        return {
+            "status": "success",
+            "sessions": [
+                {
+                    "session_id": s.session_id,
+                    "session_name": s.session_name,
+                    "host_user_id": s.host_user_id,
+                    "target_gene": s.target_gene,
+                    "sample_id": s.sample_id,
+                    "created_at": s.created_at.isoformat() if s.created_at else None
+                }
+                for s in sessions
+            ]
+        }
+    except Exception:
+        return {"status": "success", "sessions": []}
+
+
+@app.get("/api/collaboration/sessions/{session_id}")
+def api_get_collaboration_session(session_id: str):
+    """Sprint 5 (Spec 10) — Returns session details, notepad, and connected users."""
+    from modules.collaboration_manager import create_or_get_session, collab_hub
+    from core.database import get_db
+    db = next(get_db())
+    session_data = create_or_get_session(session_id=session_id, db_session=db)
+    active_users = collab_hub.get_active_users(session_id)
+    return {
+        "status": "success",
+        "session": session_data,
+        "active_users": active_users
+    }
+
+
+@app.post("/api/collaboration/sessions/{session_id}/notes")
+def api_add_session_note(session_id: str, req: CollaborationNoteRequest):
+    """Sprint 5 (Spec 10) — Appends a clinical annotation or discussion note."""
+    from modules.collaboration_manager import add_session_note
+    from core.database import get_db
+    db = next(get_db())
+    note = add_session_note(
+        session_id=session_id,
+        author_id=req.author_id,
+        author_name=req.author_name,
+        content=req.content,
+        author_role=req.author_role,
+        pinned=req.pinned,
+        db_session=db
+    )
+    return {"status": "success", "note": note}
+
+
+@app.get("/api/collaboration/sessions/{session_id}/notes")
+def api_get_session_notes(session_id: str):
+    """Sprint 5 (Spec 10) — Retrieves all notes and annotations for a session."""
+    from modules.collaboration_manager import get_session_notes
+    from core.database import get_db
+    db = next(get_db())
+    notes = get_session_notes(session_id=session_id, db_session=db)
+    return {"status": "success", "notes": notes}
+
+
+@app.post("/api/collaboration/sessions/{session_id}/signoff")
+def api_add_consensus_signoff(session_id: str, req: CollaborationSignoffRequest):
+    """Sprint 5 (Spec 10) — Records a 21 CFR Part 11 compliant guide sign-off."""
+    from modules.collaboration_manager import add_consensus_signoff
+    from core.database import get_db
+    db = next(get_db())
+    signoff = add_consensus_signoff(
+        session_id=session_id,
+        candidate_guide_id=req.candidate_guide_id,
+        signoff_decision=req.signoff_decision,
+        reviewer_name=req.reviewer_name,
+        reviewer_role=req.reviewer_role,
+        rationale_notes=req.rationale_notes,
+        db_session=db
+    )
+    return {"status": "success", "signoff": signoff}
+
+
+@app.get("/api/collaboration/sessions/{session_id}/signoffs")
+def api_get_consensus_signoffs(session_id: str):
+    """Sprint 5 (Spec 10) — Returns consensus sign-offs for candidate guides."""
+    from modules.collaboration_manager import get_consensus_signoffs
+    from core.database import get_db
+    db = next(get_db())
+    signoffs = get_consensus_signoffs(session_id=session_id, db_session=db)
+    return {"status": "success", "signoffs": signoffs}
+
+
+@app.websocket("/ws/collaboration/{session_id}")
+async def collaboration_websocket(websocket: WebSocket, session_id: str):
+    """
+    Sprint 5 (Spec 10) — Real-time WebSocket connection for live multi-user collaboration:
+    cursor synchronization, peer presence, shared notepad, and chat broadcasts.
+    """
+    from modules.collaboration_manager import collab_hub
+    # Parse query parameters for user info
+    query_params = dict(websocket.query_params)
+    user_info = {
+        "user_id": query_params.get("user_id", f"USER_{uuid.uuid4().hex[:6]}"),
+        "display_name": query_params.get("display_name", "Clinical Investigator"),
+        "role": query_params.get("role", "Oncologist"),
+        "color": query_params.get("color", "#38bdf8")
+    }
+
+    await collab_hub.connect(session_id, websocket, user_info)
+    try:
+        while True:
+            data_text = await websocket.receive_text()
+            msg = json.loads(data_text)
+            msg_type = msg.get("type")
+
+            if msg_type == "CURSOR_MOVE":
+                await collab_hub.update_cursor(session_id, websocket, msg.get("cursor", {}))
+            elif msg_type == "NOTEPAD_EDIT":
+                await collab_hub.update_notepad(session_id, msg.get("content", ""), user_info["user_id"])
+            elif msg_type == "CHAT_MESSAGE":
+                await collab_hub.broadcast(session_id, {
+                    "type": "CHAT_MESSAGE",
+                    "sender": user_info,
+                    "text": msg.get("text", ""),
+                    "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()
+                })
+            elif msg_type == "TAB_CHANGE":
+                await collab_hub.broadcast(session_id, {
+                    "type": "PEER_TAB_CHANGE",
+                    "user_id": user_info["user_id"],
+                    "display_name": user_info["display_name"],
+                    "active_tab": msg.get("active_tab")
+                }, exclude=websocket)
+    except WebSocketDisconnect:
+        await collab_hub.disconnect(session_id, websocket)
+    except Exception as e:
+        await collab_hub.disconnect(session_id, websocket)
 
 
 

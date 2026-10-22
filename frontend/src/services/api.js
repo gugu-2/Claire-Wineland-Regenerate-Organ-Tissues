@@ -408,5 +408,77 @@ export const api = {
   async getSynthesisOrderStatus(orderId) {
     const res = await fetch(`${API_BASE}/synthesis/orders/${encodeURIComponent(orderId)}/status`);
     return res.json();
+  },
+
+  // ── SPRINT 5: Clinical Trials & Multi-User Collaboration ───────────────────
+  async searchClinicalTrials(payload) {
+    const res = await fetch(`${API_BASE}/clinical-trials/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
+
+  async getCuratedClinicalTrials() {
+    const res = await fetch(`${API_BASE}/clinical-trials/curated`);
+    return res.json();
+  },
+
+  async getClinicalTrialDetail(nctId) {
+    const res = await fetch(`${API_BASE}/clinical-trials/${encodeURIComponent(nctId)}`);
+    return res.json();
+  },
+
+  async getClinicalTrialHistory() {
+    const res = await fetch(`${API_BASE}/clinical-trials/history`);
+    return res.json();
+  },
+
+  async createOrGetCollaborationSession(payload) {
+    const res = await fetch(`${API_BASE}/collaboration/sessions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
+
+  async getCollaborationSession(sessionId) {
+    const res = await fetch(`${API_BASE}/collaboration/sessions/${encodeURIComponent(sessionId)}`);
+    return res.json();
+  },
+
+  async listCollaborationSessions() {
+    const res = await fetch(`${API_BASE}/collaboration/sessions`);
+    return res.json();
+  },
+
+  async addCollaborationNote(sessionId, payload) {
+    const res = await fetch(`${API_BASE}/collaboration/sessions/${encodeURIComponent(sessionId)}/notes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
+
+  async getCollaborationNotes(sessionId) {
+    const res = await fetch(`${API_BASE}/collaboration/sessions/${encodeURIComponent(sessionId)}/notes`);
+    return res.json();
+  },
+
+  async addCollaborationSignoff(sessionId, payload) {
+    const res = await fetch(`${API_BASE}/collaboration/sessions/${encodeURIComponent(sessionId)}/signoff`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
+
+  async getCollaborationSignoffs(sessionId) {
+    const res = await fetch(`${API_BASE}/collaboration/sessions/${encodeURIComponent(sessionId)}/signoffs`);
+    return res.json();
   }
 };

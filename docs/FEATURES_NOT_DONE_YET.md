@@ -25,14 +25,14 @@ This document outlines every feature that remains **incomplete**, **partially im
 | [✔ SPRINT 3 DONE]   CAR-T Tumor Surface Antigen Identification Engine & 2nd-Gen Construct Blueprint     |
 | [✔ SPRINT 4 DONE]   In-Silico Phage ART Forward DNA Writing Construct Designer (DMD, CFTR, HBB)         |
 | [✔ SPRINT 4 DONE]   Automated Commercial Synthesis B2B API Checkout (IDT / Twist / GenScript Direct)    |
+| [✔ SPRINT 5 DONE]   Live ClinicalTrials.gov Matching, 18 NCI Center Centroids & Haversine Locator        |
+| [✔ SPRINT 5 DONE]   Multi-User Live WebSocket Collaboration Hub, Real-Time Notepad & 21 CFR Sign-Off     |
+| [✔ SPRINT 5 DONE]   Mobile & Tablet Responsive Layouts, Fixed Bottom Nav & Mobile Drawer Adaptation      |
 +---------------------------------------------------------------------------------------------------------+
 | [⏳ NOT DONE YET]   Genome-Wide 3.2B Base-Pair Alignments (BWA-MEM / Cas-OFFinder full-genome index)   |
 | [⏳ NOT DONE YET]   Standalone NetMHCpan-4.1 / MHCflurry Binary Execution (all 150+ HLA alleles)        |
-| [⏳ NOT DONE YET]   Live ClinicalTrials.gov API v2 Real-Time Patient Location Matching                  |
 | [⏳ NOT DONE YET]   Bacterial Retron & Diversity-Generating Retroelement (DGR) Modalities               |
 | [⏳ NOT DONE YET]   Pharmacokinetic / Pharmacodynamic (PK/PD) Intratumoral Virus Diffusion Solver       |
-| [⏳ NOT DONE YET]   Multi-User Collaborative Live Session Sharing (Google Docs-style team editing)      |
-| [⏳ NOT DONE YET]   Mobile & Tablet Responsive Layouts for Bedside Clinical Rounds                      |
 +---------------------------------------------------------------------------------------------------------+
 ```
 
@@ -125,11 +125,7 @@ This document outlines every feature that remains **incomplete**, **partially im
 ---
 
 #### 9. Live ClinicalTrials.gov API v2 Patient Location Matching
-* **Current Status:** The Knowledge Copilot identifies approved drugs (e.g., Sotorasib, Osimertinib) from OncoKB tiers.
-* **What is Not Done Yet:**
-  - Direct integration with the newly modernized ClinicalTrials.gov REST API v2.
-  - Automated filtering that inputs the patient's postal/ZIP code, performance status (ECOG score), and exact somatic variant list to output recruiting Phase 1/2/3 clinical trials ranked by driving distance.
-* **Why it matters:** When standard approved therapies fail, connecting patients to active clinical trials can be life-saving.
+* **Current Status:** [✔ COMPLETED IN SPRINT 5 - Feature Spec 09]. `clinical_trials_matcher.py` provides multi-criteria precision oncology matching (0.0 to 1.0), 18 NCI Cancer Center ZIP geocodes, Haversine spherical distance calculation, 8 benchmark landmark trials, and RFC 4180 CSV export. Frontend view `ClinicalTrialsMatcher.jsx` is integrated in Tab 11.
 
 ---
 
@@ -153,19 +149,12 @@ This document outlines every feature that remains **incomplete**, **partially im
   - A DGR sequence analyzer capable of modeling targeted hypermutability for generating antibody diversity libraries.
 
 #### 12. Multi-User Live Collaborative Workspace (Google Docs-Style Co-Editing)
-* **Current Status:** The platform runs locally for a single researcher per browser session.
-* **What is Not Done Yet:**
-  - Multi-user room coordination over WebSockets.
-  - Presence indicators (live colored cursors showing where another oncologist is reviewing the locus).
-  - Real-time collaborative annotation of tumor biopsies and shared review sign-offs.
-* **Why it matters:** Hospital molecular tumor boards consist of oncologists, pathologists, surgical specialists, and genetic counselors who need to examine data simultaneously.
+* **Current Status:** [✔ COMPLETED IN SPRINT 5 - Feature Spec 10]. `collaboration_manager.py` implements an in-memory `CollaborationHub` with Starlette WebSockets (`/ws/collaboration/{session_id}`), live presence tracking, peer cursor position broadcasts, synchronized shared memo pad, threaded clinical notes, and 21 CFR Part 11 compliant consensus sign-offs with SQLite audit tables. Frontend `CollaborationSidebar.jsx` and `useCollaborationWS.js` provide seamless real-time co-review.
 
 ---
 
 #### 13. Mobile & Tablet Responsive Layouts
-* **Current Status:** Optimized for high-resolution desktop screens (1280px+ widescreen) with complex multi-column grids, SVG chromosome viewers, and radar charts.
-* **What is Not Done Yet:**
-  - Dedicated touch-friendly mobile navigation for oncologists reviewing patient summaries on hospital tablets (iPads) or phones during clinical bedside rounds.
+* **Current Status:** [✔ COMPLETED IN SPRINT 5 - Feature Spec 11]. Responsive navigation with horizontal scroll and CLINICAL badge, fixed bottom navigation bar (`MobileBottomNav.jsx`) for viewport `<lg:`, responsive slide-out collaboration drawer with mobile viewport width bounding, and bottom padding on `<main>` preventing floating element occlusion.
 
 ---
 

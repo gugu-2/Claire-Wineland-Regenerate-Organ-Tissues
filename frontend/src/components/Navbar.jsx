@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dna, ShieldCheck, FileCheck, Layers, Sparkles, AlertCircle, TestTube, Target } from 'lucide-react';
+import { Dna, ShieldCheck, FileCheck, Layers, Sparkles, AlertCircle, TestTube, Target, Search } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab, selectedSample, statusInfo, onRetryConnection, onToggleCopilot }) {
   const navItems = [
@@ -13,6 +13,7 @@ export default function Navbar({ activeTab, setActiveTab, selectedSample, status
     { id: 'onco-viral', label: '8. OncoViral Therapy Planner', icon: Dna, oncology: true },
     { id: 'art-research', label: '9. ART Research', icon: Dna, art: true },
     { id: 'playground', label: '10. Real-Time Playground', icon: Sparkles },
+    { id: 'clinical-trials', label: '11. Clinical Trials', icon: Search, clinical: true },
   ];
 
   return (
@@ -133,6 +134,9 @@ export default function Navbar({ activeTab, setActiveTab, selectedSample, status
                 )}
                 {tab.art && (
                   <span className="text-[9px] px-1 py-0.5 bg-violet-950 border border-violet-800 text-violet-400 rounded font-bold leading-none">NEW</span>
+                )}
+                {tab.clinical && (
+                  <span className="text-[9px] px-1 py-0.5 bg-blue-950 border border-blue-800 text-blue-400 rounded font-bold leading-none">CLINICAL</span>
                 )}
               </button>
             );

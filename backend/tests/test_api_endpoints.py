@@ -1,6 +1,9 @@
 import pytest
 from fastapi.testclient import TestClient
 from main import app
+from core.database import init_db
+
+init_db()
 
 client = TestClient(app)
 
@@ -299,4 +302,68 @@ def test_api_synthesis_order_and_history():
     assert status_resp.status_code == 200
     stat_data = status_resp.json()
     assert "SUBMITTED" in stat_data["lifecycle_status"]
+
+def test_api_clinical_trials_search():
+    payload = {
+        "gene": "KRAS",
+        "mutation": "G12D",
+        "cancer_type": "Pancreatic Cancer",
+        "patient_zip": "10001",
+        "radius_miles": 150.0
+    }
+    resp = client.post("/api/clinical-trials/search", json=payload)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "success"
+    assert data["total_found"] >= 1
+    assert len(data["trials"]) >= 1
+
+def test_api_clinical_trials_curated_and_detail():
+    resp = client.get("/api/clinical-trials/curated")
+    assert resp.status_code == 200
+    assert resp.json()["total_curated"] >= 5
+
+    detail_resp = client.get("/api/clinical-trials/NCT04956640")
+    assert detail_resp.status_code == 200
+    assert detail_resp.json()["trial"]["acronym"] == "KRYSTAL-1"
+
+def test_api_collaboration_session_flow():
+    sess_payload = {
+        "session_id": "API_TEST_SESSION_01",
+        "session_name": "Pancreatic Tumor Board",
+        "host_user_id": "Dr. Oncologist",
+        "target_gene": "KRAS"
+    }
+    create_resp = client.post("/api/collaboration/sessions", json=sess_payload)
+    assert create_resp.status_code == 200
+    assert create_resp.json()["session"]["session_id"] == "API_TEST_SESSION_01"
+
+    # Post a note
+    note_payload = {
+        "author_id": "USER_ONCO_01",
+        "author_name": "Dr. Sarah Chen",
+        "content": "Recommended trial NCT04956640 for patient given KRAS G12D profile.",
+        "author_role": "Oncologist"
+    }
+    note_resp = client.post("/api/collaboration/sessions/API_TEST_SESSION_01/notes", json=note_payload)
+    assert note_resp.status_code == 200
+    assert note_resp.json()["note"]["author_name"] == "Dr. Sarah Chen"
+
+    # Get notes
+    notes_resp = client.get("/api/collaboration/sessions/API_TEST_SESSION_01/notes")
+    assert notes_resp.status_code == 200
+    assert len(notes_resp.json()["notes"]) >= 1
+
+    # Post a signoff
+    signoff_payload = {
+        "candidate_guide_id": "GUIDE_KRAS_G12D_TOP",
+        "signoff_decision": "APPROVED",
+        "reviewer_name": "Dr. Sarah Chen",
+        "reviewer_role": "Lead Oncologist",
+        "rationale_notes": "All safety benchmarks verified."
+    }
+    signoff_resp = client.post("/api/collaboration/sessions/API_TEST_SESSION_01/signoff", json=signoff_payload)
+    assert signoff_resp.status_code == 200
+    assert signoff_resp.json()["signoff"]["signoff_decision"] == "APPROVED"
+
 
