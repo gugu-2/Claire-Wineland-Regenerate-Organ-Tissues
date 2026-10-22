@@ -8,10 +8,11 @@ export default function Navbar({ activeTab, setActiveTab, selectedSample, status
     { id: 'wetlab', label: '3. Wet-Lab & Delivery Studio', icon: TestTube },
     { id: 'regeneration', label: '4. Stem Cell & Regeneration', icon: Sparkles },
     { id: 'report', label: '5. Research Dossier & Audit', icon: ShieldCheck },
-    { id: 'onco-crispr', label: '6. OncoCRISPR Designer', icon: Target, oncology: true },
-    { id: 'onco-viral', label: '7. OncoViral Therapy Planner', icon: Dna, oncology: true },
-    { id: 'art-research', label: '8. ART Research', icon: Dna, art: true },
-    { id: 'playground', label: '9. Real-Time Playground', icon: Sparkles },
+    { id: 'onco-crispr', label: '6. OncoTherapy & CAR-T', icon: Target, oncology: true },
+    { id: 'scrna-spatial', label: '7. Single-Cell & Spatial', icon: Layers, oncology: true },
+    { id: 'onco-viral', label: '8. OncoViral Therapy Planner', icon: Dna, oncology: true },
+    { id: 'art-research', label: '9. ART Research', icon: Dna, art: true },
+    { id: 'playground', label: '10. Real-Time Playground', icon: Sparkles },
   ];
 
   return (

@@ -238,3 +238,19 @@ class ExpressionProfileModel(Base):
     classification = Column(String(32), default="Low") # "High" | "Medium" | "Low" | "Silent"
     source_file = Column(String(256), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class ScRnaDatasetModel(Base):
+    """
+    Stores processed single-cell RNA-seq clustering and UMAP embeddings.
+    """
+    __tablename__ = "scrna_datasets"
+
+    id = Column(String(64), primary_key=True, index=True)
+    sample_id = Column(String(64), index=True, nullable=False)
+    dataset_name = Column(String(128), default="scRNA_Sample")
+    cell_count = Column(Integer, default=0)
+    gene_count = Column(Integer, default=0)
+    n_clusters = Column(Integer, default=0)
+    results_json = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

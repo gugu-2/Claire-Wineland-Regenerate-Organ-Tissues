@@ -8,6 +8,7 @@ import KnowledgeCopilotView from './components/KnowledgeCopilotView';
 import ResearchReportView from './components/ResearchReportView';
 import ExpertReviewModal from './components/ExpertReviewModal';
 import OncoCrisprDesignerView from './components/OncoCrisprDesignerView';
+import ScRnaView from './components/ScRnaView';
 import OncoViralPlannerView from './components/OncoViralPlannerView';
 import ArtResearchView from './components/ArtResearchView';
 import PlaygroundView from './components/PlaygroundView';
@@ -363,6 +364,21 @@ export default function App() {
     setActiveTab('wetlab');
   };
 
+  const handleProceedToCrisprWithGene = (gene) => {
+    const baseSampleId = selectedSample?.sample_id || 'TCGA-PDAC';
+    setSelectedSample({
+      sample_id: baseSampleId,
+      donor_id: selectedSample?.donor_id || 'DONOR-ONCO-PDAC',
+      sample_type: 'Pancreatic Tumor Biopsy Subclone',
+      target_gene: gene,
+      description: `Subclone-derived target ${gene} identified via single-cell RNA-seq (Cluster 3 CSC)`,
+      consent_status: 'Preclinical Protocol',
+      alignment_reference: 'GRCh38',
+      variants: []
+    });
+    setActiveTab('crispr');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#090d16] flex items-center justify-center text-slate-300 font-mono text-xs">
@@ -454,6 +470,13 @@ export default function App() {
         {activeTab === 'onco-crispr' && (
           <OncoCrisprDesignerView
             somaticProfile={null}
+          />
+        )}
+
+        {activeTab === 'scrna-spatial' && (
+          <ScRnaView
+            selectedSample={selectedSample}
+            onProceedToCrisprWithGene={handleProceedToCrisprWithGene}
           />
         )}
 

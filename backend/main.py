@@ -59,7 +59,17 @@ from modules.rnaseq_processor import (
     query_gene_expression,
     load_curated_benchmark_profile
 )
-from core.models import NeoantigenPredictionModel, ExpressionProfileModel
+from core.models import NeoantigenPredictionModel, ExpressionProfileModel, ScRnaDatasetModel
+from modules.cart_engine import (
+    identify_cart_candidates,
+    get_cart_blueprint,
+    load_cart_database
+)
+from modules.scrna_processor import (
+    process_scrna_expression_matrix,
+    generate_benchmark_pdac_scrna,
+    generate_spatial_visium_grid
+)
 from modules.tumor_fingerprint import generate_tumor_fingerprint
 from modules.guide_evolution import simulate_guide_evolution_robustness
 from modules.structure_fetcher import (
@@ -1362,6 +1372,129 @@ def api_get_offtarget_scan_status(job_id: str):
         }
     finally:
         db.close()
+
+
+# ----------------- CAR-T Cell Surface Antigen Engine (Spec 06) ----------------- #
+
+class CartTargetRequest(BaseModel):
+    cancer_type: Optional[str] = "Pancreatic Ductal Adenocarcinoma (PDAC)"
+    sample_id: Optional[str] = None
+    somatic_profile: Optional[Dict] = None
+
+@app.post("/api/oncology/cart-targets")
+def api_identify_cart_targets(req: CartTargetRequest):
+    """
+    Sprint 3 (Spec 06) — Identifies and ranks CAR-T cell surface antigens.
+    Evaluates normal tissue cross-reactivity across 54 GTEx tissues and 5 vital organs.
+    """
+    try:
+        from core.database import SessionLocal
+        db = SessionLocal()
+        try:
+            return identify_cart_candidates(
+                cancer_type=req.cancer_type or "Pancreatic Ductal Adenocarcinoma (PDAC)",
+                somatic_profile=req.somatic_profile,
+                sample_id=req.sample_id,
+                db_session=db
+            )
+        finally:
+            db.close()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/oncology/cart-targets/{antigen}/blueprint")
+def api_get_cart_blueprint(antigen: str, patient_id: Optional[str] = "PATIENT_001"):
+    """Sprint 3 (Spec 06) — Generates full CAR construct blueprint with scFv sequence and trials."""
+    try:
+        result = get_cart_blueprint(antigen_name=antigen, patient_id=patient_id)
+        if result.get("status") == "error":
+            raise HTTPException(status_code=404, detail=result.get("message"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/oncology/cart-antigens")
+def api_get_all_cart_antigens():
+    """Sprint 3 (Spec 06) — Returns database of curated CAR-T surface targets."""
+    try:
+        return {"status": "success", "antigens": load_cart_database()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ----------------- Single-Cell RNA-seq & Spatial Transcriptomics (Spec 05) ----------------- #
+
+class ScRnaUploadRequest(BaseModel):
+    dataset_name: Optional[str] = "scRNA_Sample"
+    sample_id: Optional[str] = "SAMPLE_EXP"
+    matrix_csv: str
+    n_clusters: Optional[int] = 6
+
+class ScRnaBenchmarkRequest(BaseModel):
+    sample_id: Optional[str] = "BENCHMARK_PDAC"
+    benchmark_key: Optional[str] = "PDAC_SUBCLONES"
+
+@app.post("/api/scrna/upload")
+def api_upload_scrna(req: ScRnaUploadRequest):
+    """
+    Sprint 3 (Spec 05) — Ingests single-cell expression matrix, computes PCA,
+    UMAP coordinates, clustering, Cancer Stem Cell (CSC) scoring, and marker genes.
+    """
+    try:
+        import io
+        import pandas as pd
+        df = pd.read_csv(io.StringIO(req.matrix_csv), index_col=0)
+        results = process_scrna_expression_matrix(
+            df=df,
+            dataset_name=req.dataset_name or "scRNA_Sample",
+            n_clusters=req.n_clusters or 6
+        )
+        
+        from core.database import SessionLocal
+        db = SessionLocal()
+        try:
+            dataset_id = f"SCRNA_{uuid.uuid4().hex[:8]}"
+            obj = ScRnaDatasetModel(
+                id=dataset_id,
+                sample_id=req.sample_id or "SAMPLE_EXP",
+                dataset_name=req.dataset_name or "scRNA_Sample",
+                cell_count=results["total_cells"],
+                gene_count=results["total_genes"],
+                n_clusters=results["n_clusters"],
+                results_json=json.dumps(results)
+            )
+            db.add(obj)
+            db.commit()
+            results["dataset_id"] = dataset_id
+        finally:
+            db.close()
+            
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/scrna/load-benchmark")
+def api_load_scrna_benchmark(req: ScRnaBenchmarkRequest):
+    """
+    Sprint 3 (Spec 05) — Loads curated single-cell Pancreatic PDAC biopsy benchmark
+    with 6 distinct subclones including therapy-resistant Cancer Stem Cells (CSC).
+    """
+    try:
+        results = generate_benchmark_pdac_scrna(n_cells=1200)
+        results["sample_id"] = req.sample_id or "BENCHMARK_PDAC"
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/scrna/spatial-visium")
+def api_get_spatial_visium(spots_x: Optional[int] = 24, spots_y: Optional[int] = 18):
+    """Sprint 3 (Spec 05) — Generates 10x Visium spatial spot coordinates and expression gradients."""
+    try:
+        return generate_spatial_visium_grid(n_spots_x=spots_x, n_spots_y=spots_y)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.websocket("/ws/playground")

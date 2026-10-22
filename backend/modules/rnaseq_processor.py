@@ -386,6 +386,12 @@ CURATED_BENCHMARKS = {
         "description": "TCGA-PAAD primary tumor sample with driver KRAS G12D mutation and suppressed immune checkpoint genes.",
         "genes": {
             "KRAS": {"tpm": 312.4, "percentile": 94.2, "log2fc": 3.4, "padj": 1e-12},
+            "CD44": {"tpm": 185.0, "percentile": 89.2, "log2fc": 3.1, "padj": 1e-9},
+            "SOX2": {"tpm": 112.5, "percentile": 82.0, "log2fc": 2.4, "padj": 1e-7},
+            "ALDH1A1": {"tpm": 134.0, "percentile": 84.5, "log2fc": 2.6, "padj": 1e-8},
+            "PROM1": {"tpm": 78.4, "percentile": 72.1, "log2fc": 1.7, "padj": 0.001},
+            "MSLN": {"tpm": 285.4, "percentile": 93.5, "log2fc": 4.1, "padj": 1e-12},
+            "CLDN18": {"tpm": 142.1, "percentile": 85.0, "log2fc": 2.8, "padj": 1e-8},
             "EGFR": {"tpm": 184.2, "percentile": 88.5, "log2fc": 2.1, "padj": 1e-8},
             "MYC": {"tpm": 142.1, "percentile": 84.0, "log2fc": 1.9, "padj": 1e-6},
             "TP53": {"tpm": 96.5, "percentile": 76.1, "log2fc": 1.2, "padj": 0.002},
@@ -427,6 +433,9 @@ CURATED_BENCHMARKS = {
             "CCR5": {"tpm": 847.3, "percentile": 98.4, "log2fc": 4.5, "padj": 1e-16},
             "CXCR4": {"tpm": 412.0, "percentile": 93.1, "log2fc": 3.1, "padj": 1e-10},
             "CD4": {"tpm": 210.5, "percentile": 86.2, "log2fc": 2.4, "padj": 1e-7},
+            "CD44": {"tpm": 165.0, "percentile": 87.5, "log2fc": 2.8, "padj": 1e-8},
+            "MYC": {"tpm": 128.0, "percentile": 81.2, "log2fc": 1.9, "padj": 1e-5},
+            "SOX2": {"tpm": 95.0, "percentile": 75.0, "log2fc": 1.6, "padj": 0.001},
             "KRAS": {"tpm": 65.2, "percentile": 68.4, "log2fc": 0.2, "padj": 0.4},
             "HBB": {"tpm": 0.3, "percentile": 3.5, "log2fc": -3.0, "padj": 1e-6}
         }

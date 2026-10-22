@@ -315,5 +315,49 @@ export const api = {
       body: JSON.stringify(payload)
     });
     return res.json();
+  },
+
+  // ── SPRINT 3: CAR-T Engine & Single-Cell Spatial Transcriptomics ─────────
+
+  async getCartTargets(payload) {
+    const res = await fetch(`${API_BASE}/oncology/cart-targets`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
+
+  async getCartBlueprint(antigen, patientId = 'PATIENT_001') {
+    const res = await fetch(`${API_BASE}/oncology/cart-targets/${encodeURIComponent(antigen)}/blueprint?patient_id=${encodeURIComponent(patientId)}`);
+    return res.json();
+  },
+
+  async getAllCartAntigens() {
+    const res = await fetch(`${API_BASE}/oncology/cart-antigens`);
+    return res.json();
+  },
+
+  async uploadScRnaMatrix(payload) {
+    const res = await fetch(`${API_BASE}/scrna/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
+
+  async loadScRnaBenchmark(payload) {
+    const res = await fetch(`${API_BASE}/scrna/load-benchmark`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
+
+  async getSpatialVisium(spotsX = 24, spotsY = 18) {
+    const res = await fetch(`${API_BASE}/scrna/spatial-visium?spots_x=${spotsX}&spots_y=${spotsY}`);
+    return res.json();
   }
 };

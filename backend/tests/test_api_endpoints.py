@@ -155,3 +155,76 @@ def test_api_rnaseq_benchmark_load():
     sum_data = summary_resp.json()
     assert sum_data["status"] == "success"
     assert len(sum_data["top_expressed"]) > 0
+
+
+# ── Sprint 3 API Tests (Spec 05 & Spec 06) ────────────────────────────────────
+
+def test_api_cart_targets():
+    payload = {
+        "cancer_type": "Pancreatic Ductal Adenocarcinoma (PDAC)",
+        "sample_id": "API_TEST_TUMOR"
+    }
+    response = client.post("/api/oncology/cart-targets", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["total_antigens_evaluated"] >= 15
+    assert len(data["candidates"]) > 0
+
+def test_api_cart_blueprint():
+    response = client.get("/api/oncology/cart-targets/MSLN/blueprint?patient_id=PT_TEST_01")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["antigen"] == "MSLN"
+    assert "car_architecture" in data
+    assert len(data["full_car_polypeptide"]) > 300
+
+def test_api_scrna_benchmark_load():
+    payload = {
+        "sample_id": "PT_SCRNA_BENCHMARK",
+        "benchmark_key": "PDAC_SUBCLONES"
+    }
+    response = client.post("/api/scrna/load-benchmark", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["total_cells"] == 1200
+    assert len(data["clusters_summary"]) >= 4
+    assert len(data["cell_points"]) > 0
+
+def test_api_scrna_spatial_visium():
+    response = client.get("/api/scrna/spatial-visium?spots_x=12&spots_y=8")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["total_spots"] == 96
+
+def test_api_cart_antigens_all():
+    response = client.get("/api/oncology/cart-antigens")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert len(data["antigens"]) >= 15
+
+def test_api_cart_blueprint_404():
+    response = client.get("/api/oncology/cart-targets/NONEXISTENT_ANTIGEN/blueprint")
+    assert response.status_code == 404
+
+def test_api_scrna_upload():
+    # Build minimal single-cell CSV
+    csv_content = "cell_id,KRAS,TP53,CD44,SOX2,ALDH1A1\n" + "\n".join([
+        f"CELL_{i},{i%5},{i%3},{i%4},{i%2},{i%6}" for i in range(20)
+    ])
+    payload = {
+        "dataset_name": "API_UPLOAD_TEST",
+        "sample_id": "PT_UPLOAD_001",
+        "matrix_csv": csv_content,
+        "n_clusters": 3
+    }
+    response = client.post("/api/scrna/upload", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["total_cells"] == 20
+    assert len(data["cell_points"]) == 20

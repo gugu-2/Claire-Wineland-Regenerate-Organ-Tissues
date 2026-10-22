@@ -1,0 +1,422 @@
+{
+  "CD19": {
+    "gene": "CD19",
+    "full_name": "B-Lymphocyte Antigen CD19",
+    "cancer_types": ["B-cell ALL", "DLBCL", "CLL", "Follicular Lymphoma", "Mantle Cell Lymphoma"],
+    "approved_therapies": ["Tisagenlecleucel (Kymriah)", "Axicabtagene ciloleucel (Yescarta)", "Brexucabtagene autoleucel (Tecartus)", "Lisocabtagene maraleucel (Breyanzi)"],
+    "scfv_sequence": "DIQMTQTTSSLSASLGDRVTISCRASQDISKYLNWYQQKPDGTVKLLIYHTSRLHSGVPSRFSGSGSGTDYSLTISNLEQEDIATYFCQQGNTLPYTFGGGTKLEITGSTSGSGKPGSGEGSTKGEVKLQESGPGLVAPSQSLSVTCTVSGVSLPDYGVSWIRQPPRKGLEWLGVIWGSETTYYNSALKSRLTIIKDNSKSQVFLKMNSLQTDDTAIYYCAKHYYYGGSYAMDYWGQGTSVTVSS",
+    "hinge_transmembrane": "CD8alpha hinge and transmembrane domain",
+    "costimulatory_domain": "4-1BB (CD137) or CD28",
+    "costimulatory_rationale": "4-1BB provides long-term persistence with lower cytokine release syndrome (CRS) risk, ideal for ALL and indolent NHL.",
+    "gtex_normal_median_tpm": 0.8,
+    "gtex_vital_organ_tpm": {
+      "heart": 0.1,
+      "brain": 0.1,
+      "liver": 0.2,
+      "lung": 0.6,
+      "kidney": 0.2
+    },
+    "safety_tier": "SAFE",
+    "safety_notes": "Expressed exclusively on B-lineage cells. Expected on-target B-cell aplasia is manageable with IVIG immunoglobulin replacement.",
+    "clinical_trial_ncts": ["NCT02435849", "NCT02348216", "NCT03156101"]
+  },
+  "BCMA": {
+    "gene": "TNFRSF17",
+    "full_name": "B-Cell Maturation Antigen (BCMA / CD269)",
+    "cancer_types": ["Multiple Myeloma", "Plasma Cell Leukemia"],
+    "approved_therapies": ["Idecabtagene vicleucel (Abecma)", "Ciltacabtagene autoleucel (Carvykti)"],
+    "scfv_sequence": "QIQLVQSGPELKKPGETVKISCKASGYTFTDYSINWVVKRAPGKGLKWMGWINTETREPAYAYDFRGRFAFSLETSASTAYLQINNLKYEDTATYFCALDYSYAMDYWGQGTSVTVSSGGGGSGGGGSGGGGSDIVMTQSHKFMSTSVGDRVSITCKASQDVSTAVAWYQQKPGQSPKLLIYSASYRYTGVPDRFTGSGSGTDFTFTISSVQAEDLAVYYCQQHYSTPWTFGGGTKLEIK",
+    "hinge_transmembrane": "CD8alpha",
+    "costimulatory_domain": "4-1BB (CD137)",
+    "costimulatory_rationale": "4-1BB domain prevents exhaustion and enhances memory T cell phenotype in bone marrow niche.",
+    "gtex_normal_median_tpm": 1.2,
+    "gtex_vital_organ_tpm": {
+      "heart": 0.2,
+      "brain": 0.1,
+      "liver": 0.4,
+      "lung": 0.8,
+      "kidney": 0.3
+    },
+    "safety_tier": "SAFE",
+    "safety_notes": "Expression restricted to plasma cells and mature B-cells. Minimal off-tumor toxicity.",
+    "clinical_trial_ncts": ["NCT03548207", "NCT03361709", "NCT04133636"]
+  },
+  "HER2": {
+    "gene": "ERBB2",
+    "full_name": "Human Epidermal Growth Factor Receptor 2",
+    "cancer_types": ["HER2+ Breast Cancer", "HER2+ Gastric Cancer", "Glioblastoma", "Osteosarcoma", "Ovarian Cancer"],
+    "approved_therapies": ["Investigational CAR-T (Trastuzumab-scFv and FRP5-scFv derivatives)"],
+    "scfv_sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSGGGGSGGGGSGGGGSDIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIK",
+    "hinge_transmembrane": "CD8alpha",
+    "costimulatory_domain": "4-1BB (CD137)",
+    "costimulatory_rationale": "Lower affinity scFv coupled with 4-1BB reduces on-target off-tumor toxicity against low-expressing normal epithelia.",
+    "gtex_normal_median_tpm": 14.5,
+    "gtex_vital_organ_tpm": {
+      "heart": 8.2,
+      "brain": 1.4,
+      "liver": 6.1,
+      "lung": 12.4,
+      "kidney": 18.2
+    },
+    "safety_tier": "CAUTION",
+    "safety_notes": "Expressed at basal levels in cardiopulmonary endothelium and renal tubules. Requires affinity-tuned scFv or synNotch dual-receptor gate.",
+    "clinical_trial_ncts": ["NCT03740256", "NCT02713984", "NCT01109095"]
+  },
+  "MSLN": {
+    "gene": "MSLN",
+    "full_name": "Mesothelin",
+    "cancer_types": ["Pancreatic Ductal Adenocarcinoma (PDAC)", "Malignant Mesothelioma", "Ovarian Serous Carcinoma", "Triple-Negative Breast Cancer"],
+    "approved_therapies": ["Investigational CAR-T (SS1 scFv, Amatuximab-derived)"],
+    "scfv_sequence": "QVQLQQSGPELEKPGASVKISCKASGYSFTGYTMNWVKQSHGKSLEWIGLITPYNGASSYNQKFRGKATLTVDKSSSTAYMDLLSLTSEDSAVYFCARGGYDGRGFDYWGQGTTLTVSSGGGGSGGGGSGGGGSDIELTQSPAIMSASPGEKVTMTCSASSSVSYMHWYQQKSGTSPKRWIYDTSKLASGVPARFSGSGSGTSYSLTISSMEAEDAATYYCQQWSKHPLTFGSGTKLEIK",
+    "hinge_transmembrane": "CD8alpha",
+    "costimulatory_domain": "4-1BB (CD137)",
+    "costimulatory_rationale": "Mesothelin-rich dense desmoplastic stroma in PDAC requires prolonged T-cell survival and metabolic fitness.",
+    "gtex_normal_median_tpm": 1.8,
+    "gtex_vital_organ_tpm": {
+      "heart": 0.5,
+      "brain": 0.1,
+      "liver": 0.3,
+      "lung": 3.8,
+      "kidney": 0.4
+    },
+    "safety_tier": "SAFE",
+    "safety_notes": "Expression in normal mesothelial linings (pleura, peritoneum, pericardium); self-limiting transient pleuritis or pericarditis may occur.",
+    "clinical_trial_ncts": ["NCT03564067", "NCT03054298", "NCT03323944"]
+  },
+  "EGFRvIII": {
+    "gene": "EGFR",
+    "full_name": "Epidermal Growth Factor Receptor Variant III (In-frame deletion exons 2-7)",
+    "cancer_types": ["Glioblastoma Multiforme (GBM)", "Head and Neck Squamous Cell Carcinoma"],
+    "approved_therapies": ["Investigational CAR-T (139 scFv / 2173 scFv)"],
+    "scfv_sequence": "QVQLQESGPGLVKPSQTLSLTCTVSGGSISSGGYYWSWIRQHPGKGLEWIGYIYYSGSTYYNPSLKSRVTISVDTSKNQFSLKLSSVTAADTAVYYCARALNYYDSSGYYHPWGQGTLVTVSSGGGGSGGGGSGGGGSDIVMTQTPSSLSASVGDRVTITCRASQSISSYLNWYQQKPGKAPKLLIYAASSLQSGVPSRFSGSGSGTDFTLTISSLQPEDFATYYCQQSYSTPFTFGQGTKLEIK",
+    "hinge_transmembrane": "CD8alpha",
+    "costimulatory_domain": "4-1BB (CD137)",
+    "costimulatory_rationale": "High persistence needed to cross blood-brain barrier and target infiltrative glioblastoma edges.",
+    "gtex_normal_median_tpm": 0.0,
+    "gtex_vital_organ_tpm": {
+      "heart": 0.0,
+      "brain": 0.0,
+      "liver": 0.0,
+      "lung": 0.0,
+      "kidney": 0.0
+    },
+    "safety_tier": "SAFE",
+    "safety_notes": "Tumor-specific neo-junction created by deletion. Completely absent from normal adult tissues; zero on-target off-tumor toxicity.",
+    "clinical_trial_ncts": ["NCT02209376", "NCT02844062", "NCT01454596"]
+  },
+  "GD2": {
+    "gene": "B4GALNT1",
+    "full_name": "Disialoganglioside GD2 (Enzymatic surface glycolipid)",
+    "cancer_types": ["Neuroblastoma", "Diffuse Intrinsic Pontine Glioma (DIPG)", "Osteosarcoma", "Melanoma"],
+    "approved_therapies": ["Dinutuximab-derived 14G2a CAR-T"],
+    "scfv_sequence": "EVQLLQSGPELEKPGASVMISCKASGSSFTGYNMNWVRQNIGKSLEWIGAIDPYYGGTSYNQKFKGRATLTVDKSSSTAYMHLKSLTSEDSAVYYCVSGMEYWGQGTSVTVSSGGGGSGGGGSGGGGSDIVMTQTPLSLPVSLGDQASISCRSSQSLVHRNGNTYLHWYLQKPGQSPKLLIYKVSNRFSGVPDRFSGSGSGTDFTLKISRVEAEDLGVYFCSQSTHVPPLTFGAGTKLELK",
+    "hinge_transmembrane": "CD8alpha or IgG4-Fc spacer",
+    "costimulatory_domain": "4-1BB (CD137)",
+    "costimulatory_rationale": "Provides tonic signaling reduction to prevent premature CAR T-cell exhaustion.",
+    "gtex_normal_median_tpm": 3.4,
+    "gtex_vital_organ_tpm": {
+      "heart": 0.3,
+      "brain": 18.5,
+      "liver": 0.4,
+      "lung": 0.7,
+      "kidney": 0.5
+    },
+    "safety_tier": "CAUTION",
+    "safety_notes": "Expressed at low levels on pain-transmitting peripheral nerve fibers and select CNS regions; managed by slow infusion and analgesia.",
+    "clinical_trial_ncts": ["NCT04196413", "NCT03373097", "NCT02761915"]
+  },
+  "CLDN18.2": {
+    "gene": "CLDN18",
+    "full_name": "Claudin 18.2 (Isoform 2)",
+    "cancer_types": ["Gastric Adenocarcinoma", "Gastroesophageal Junction Cancer", "Pancreatic Cancer"],
+    "approved_therapies": ["Zolbetuximab-derived CAR-T (CT041)"],
+    "scfv_sequence": "QVQLQQSGAELMKPGASVKISCKATGYTFSTYWIEWVKQRPGHGLEWIGEILPGSGSTYYNEKFKGKATFTADTSSNTAYMQLSSLTSEDSAVYYCARGGLRSLNYWGQGTTLTVSSGGGGSGGGGSGGGGSDIVMTQSPSSLSASLGERVSLTCRASQEISGYLSWLQQKPDGTIKRLIYAASTLDSGVPKRFSGSRSGSDYSLTISSLESEDFADYYCLQYASYPRTFGGGTKLEIK",
+    "hinge_transmembrane": "CD8alpha",
+    "costimulatory_domain": "4-1BB (CD137)",
+    "costimulatory_rationale": "Promotes resistance to immunosuppressive tumor microenvironment in GI malignancies.",
+    "gtex_normal_median_tpm": 2.1,
+    "gtex_vital_organ_tpm": {
+      "heart": 0.1,
+      "brain": 0.1,
+      "liver": 0.2,
+      "lung": 4.2,
+      "kidney": 0.1
+    },
+    "safety_tier": "SAFE",
+    "safety_notes": "Expressed strictly in differentiated gastric mucosal cells within tight junctions; exposed only upon malignant polarity disruption.",
+    "clinical_trial_ncts": ["NCT03874897", "NCT04404556", "NCT04467853"]
+  },
+  "GPC3": {
+    "gene": "GPC3",
+    "full_name": "Glypican-3 (Heparan Sulfate Proteoglycan)",
+    "cancer_types": ["Hepatocellular Carcinoma (HCC)", "Hepatoblastoma", "Wilms Tumor", "Yolk Sac Tumors"],
+    "approved_therapies": ["Investigational CAR-T (Codrituzumab GC33-derived)"],
+    "scfv_sequence": "QVQLQQSGAELVRPGTSVKVSCKASGYTFTDYEMHWVKQTPVHGLEWIGALDPKTGDTAYSQKFKGKATLTADKSSSTAYMELRSLTSEDSAVYYCTRFYSYTYWGQGTLVTVSAAGGGGSGGGGSGGGGSDIVMTQSHKFMSTSVGDRVSITCKASQDVSTAVAWYQQKPGQSPKLLIYSASYRYTGVPDRFTGSGSGTDFTFTISSVQAEDLAVYYCQQHYSTPWTFGGGTKLEIK",
+    "hinge_transmembrane": "CD8alpha",
+    "costimulatory_domain": "4-1BB (CD137)",
+    "costimulatory_rationale": "4-1BB enhances survival in cirrhotic, TGF-beta-rich liver tumor microenvironment.",
+    "gtex_normal_median_tpm": 0.4,
+    "gtex_vital_organ_tpm": {
+      "heart": 0.1,
+      "brain": 0.2,
+      "liver": 0.3,
+      "lung": 1.1,
+      "kidney": 0.2
+    },
+    "safety_tier": "SAFE",
+    "safety_notes": "Oncofetal antigen; absent in healthy adult liver and non-malignant parenchymal organs.",
+    "clinical_trial_ncts": ["NCT03884751", "NCT02395250", "NCT03198546"]
+  },
+  "PSMA": {
+    "gene": "FOLH1",
+    "full_name": "Prostate-Specific Membrane Antigen (Glutamate Carboxypeptidase II)",
+    "cancer_types": ["Metastatic Castration-Resistant Prostate Cancer (mCRPC)", "Tumor Neovasculature"],
+    "approved_therapies": ["Investigational CAR-T (J591 scFv, P-PSMA-101)"],
+    "scfv_sequence": "EVQLQQSGPELVKPGTSVKISCKTSGYTFTEYTIHWVKQSHGKSLEWIGNINPNNGGTTYNQKFEDKATLTVDKSSSTAYMELRSLTSEDSAVYYCAAGWNFDYWGQGTTLTVSSGGGGSGGGGSGGGGSDIVMTQSHKFMSTSVGDRVSITCKASQDVSTAVAWYQQKPGQSPKLLIYSASYRYTGVPDRFTGSGSGTDFTFTISSVQAEDLAVYYCQQHYSTPWTFGGGTKLEIK",
+    "hinge_transmembrane": "CD8alpha",
+    "costimulatory_domain": "CD28 or 4-1BB (Dual/armored)",
+    "costimulatory_rationale": "Often combined with dominant-negative TGF-beta receptor (dnTGFbRII) to protect against bone marrow stroma.",
+    "gtex_normal_median_tpm": 6.8,
+    "gtex_vital_organ_tpm": {
+      "heart": 0.2,
+      "brain": 1.8,
+      "liver": 2.5,
+      "lung": 1.4,
+      "kidney": 28.4
+    },
+    "safety_tier": "CAUTION",
+    "safety_notes": "Normal proximal renal tubules express baseline PSMA; monitor for nephrotoxicity and salivary gland xerostomia.",
+    "clinical_trial_ncts": ["NCT04249942", "NCT03089203", "NCT01140373"]
+  },
+  "CD276": {
+    "gene": "CD276",
+    "full_name": "B7-H3 (Immune Checkpoint Molecule)",
+    "cancer_types": ["Neuroblastoma", "Sarcoma", "Medulloblastoma", "NSCLC", "Triple-Negative Breast Cancer"],
+    "approved_therapies": ["Investigational CAR-T (8H9 and Enoblituzumab derivatives)"],
+    "scfv_sequence": "QVQLVQSGAEVKKPGASVKVSCKASGYTFTNYWMHWVRQAPGQGLEWMGRIDPNSGGTNYAQKFQGRVTMTRDTSTSTVYMELSSLRSEDTAVYYCARYDYWGQGTLVTVSSGGGGSGGGGSGGGGSDIQMTQSPSSLSASVGDRVTITCRASQSISSYLNWYQQKPGKAPKLLIYAASSLQSGVPSRFSGSGSGTDFTLTISSLQPEDFATYYCQQSYSTPYTFGQGTKLEIK",
+    "hinge_transmembrane": "CD8alpha",
+    "costimulatory_domain": "4-1BB (CD137)",
+    "costimulatory_rationale": "Broad solid tumor target, requires strong sustained costimulation to overcome myeloid-derived suppressor cells.",
+    "gtex_normal_median_tpm": 26.2,
+    "gtex_vital_organ_tpm": {
+      "heart": 18.5,
+      "brain": 24.1,
+      "liver": 16.2,
+      "lung": 31.4,
+      "kidney": 22.8
+    },
+    "safety_tier": "BLOCKED",
+    "safety_notes": "High basal expression across normal vascular endothelia and vital organs. Unsafe for standard CAR without combinatorial logic gate.",
+    "clinical_trial_ncts": ["NCT04864821", "NCT04670068"]
+  },
+  "CD20": {
+    "gene": "MS4A1",
+    "full_name": "B-Lymphocyte Antigen CD20",
+    "cancer_types": ["B-cell Non-Hodgkin Lymphoma", "CLL", "Mantle Cell Lymphoma"],
+    "approved_therapies": ["Investigational CD20 and Dual CD19/CD20 CAR-T"],
+    "scfv_sequence": "QVQLQQPGAELVKPGASVKMSCKASGYTFTSYNMHWVKQTPGRGLEWIGAIYPGNGDTSYNQKFKGKATLTADKSSSTAYMQLSSLTSEDSAVYYCARSTYYGGDWYFNVWGAGTTVTVSAAGGGGSGGGGSGGGGSDIVLSQSPAILSASPGEKVTMTCRASSSVSYMHWYQQKPGSSPKPWIYAPSNLASGVPARFSGSGSGTSYSLTISRVEAEDAATYYCQQWSFNPPTFGAGTKLELK",
+    "hinge_transmembrane": "CD8alpha",
+    "costimulatory_domain": "4-1BB or CD28",
+    "costimulatory_rationale": "High-density surface target; tandem CD19/CD20 constructs prevent CD19-negative immune escape.",
+    "gtex_normal_median_tpm": 1.4,
+    "gtex_vital_organ_tpm": {
+      "heart": 0.1,
+      "brain": 0.1,
+      "liver": 0.2,
+      "lung": 0.8,
+      "kidney": 0.2
+    },
+    "safety_tier": "SAFE",
+    "safety_notes": "Expressed on mature B cells; on-target B-cell depletion managed with IVIG.",
+    "clinical_trial_ncts": ["NCT04007029", "NCT03277729"]
+  },
+  "CD22": {
+    "gene": "CD22",
+    "full_name": "B-Cell Receptor CD22 (Siglec-2)",
+    "cancer_types": ["B-cell ALL (CD19-relapsed)", "B-cell Lymphoma"],
+    "approved_therapies": ["Investigational m971-scFv CAR-T"],
+    "scfv_sequence": "QVQLQESGPGLVKPSETLSLTCTVSGGSVSSGDYYWTWIRQSPGKGLEWIGHIYYSGNTNYNPSLKSRLTISIDTSKTQFSLKLSSVTAADTAIYYCAREVTDYWGQGTLVTVSSGGGGSGGGGSGGGGSDIQMTQSPSSLSASVGDRVTITCRASQGISNYLNWYQQKPGKAPKLLIYYTSILHSGVPSRFSGSGSGTDYTLTISSLQPEDFATYFCQQGNTLPWTFGQGTKVEIK",
+    "hinge_transmembrane": "CD8alpha",
+    "costimulatory_domain": "4-1BB (CD137)",
+    "costimulatory_rationale": "Proximal epitope m971 yields optimal immunological synapse distance for CD22.",
+    "gtex_normal_median_tpm": 0.9,
+    "gtex_vital_organ_tpm": {
+      "heart": 0.1,
+      "brain": 0.1,
+      "liver": 0.2,
+      "lung": 0.6,
+      "kidney": 0.2
+    },
+    "safety_tier": "SAFE",
+    "safety_notes": "B-lineage specific antigen; primary rescue modality following CD19 antigen escape.",
+    "clinical_trial_ncts": ["NCT02315612", "NCT04088890"]
+  },
+  "CD33": {
+    "gene": "CD33",
+    "full_name": "Myeloid Cell Surface Antigen CD33 (Siglec-3)",
+    "cancer_types": ["Acute Myeloid Leukemia (AML)"],
+    "approved_therapies": ["Investigational CAR-T (Lintuzumab-derived)"],
+    "scfv_sequence": "QVQLVQSGAEVKKPGSSVKVSCKASGYTFTDYYMHWVRQAPGQGLEWMGWINPNSGGTNYAQKFQGRVTMTRDTSISTAYMELSRLRSDDTAVYYCARDYSYAMDYWGQGTLVTVSSGGGGSGGGGSGGGGSDIQMTQSPSSLSASVGDRVTITCRASESVDNYGISFMNWFQQKPGKAPKLLIYAASNQGSGVPSRFSGSGSGTDFTLTISSLQPEDFATYYCQQSKEVPWTFGQGTKVEIK",
+    "hinge_transmembrane": "CD8alpha",
+    "costimulatory_domain": "4-1BB (CD137)",
+    "costimulatory_rationale": "4-1BB improves persistence and dampens immediate CRS in high-burden myeloid leukemia.",
+    "gtex_normal_median_tpm": 4.1,
+    "gtex_vital_organ_tpm": {
+      "heart": 0.2,
+      "brain": 0.3,
+      "liver": 8.4,
+      "lung": 2.1,
+      "kidney": 0.4
+    },
+    "safety_tier": "CAUTION",
+    "safety_notes": "Expressed on healthy hematopoietic stem/progenitor cells (HSPCs) and hepatic Kupffer cells. Myeloablation requires rescue stem cell transplant.",
+    "clinical_trial_ncts": ["NCT03971409", "NCT01864902"]
+  },
+  "CD123": {
+    "gene": "IL3RA",
+    "full_name": "Interleukin-3 Receptor Subunit Alpha (CD123)",
+    "cancer_types": ["Acute Myeloid Leukemia (AML)", "Blastic Plasmacytoid Dendritic Cell Neoplasm (BPDCN)"],
+    "approved_therapies": ["Investigational 7G3-scFv CAR-T"],
+    "scfv_sequence": "EVQLVESGGGLVQPKGSLKLSCAASGFTFNTYAMNWVRQAPGKGLEWVARIRSKYNNYATYYADSVKDRFTISRDDSQSILYLQMNNLKTEDTAMYYCVRHGNFGNSYVSWFAYWGQGTLVTVSAAGGGGSGGGGSGGGGSDIVMTQAAPSVPVTPGESVSISCRSSKSLLHSNGNTYLYWFLQRPGQSPQLLIYRMSNLASGVPDRFSGSGSGTAFTLRISRVEAEDVGVYYCMQHLEYPFTFGAGTKLELK",
+    "hinge_transmembrane": "CD8alpha",
+    "costimulatory_domain": "4-1BB (CD137)",
+    "costimulatory_rationale": "Minimizes cytokine surge when eradicating leukemic stem cells (LSCs).",
+    "gtex_normal_median_tpm": 3.8,
+    "gtex_vital_organ_tpm": {
+      "heart": 0.3,
+      "brain": 0.2,
+      "liver": 3.1,
+      "lung": 4.5,
+      "kidney": 0.8
+    },
+    "safety_tier": "CAUTION",
+    "safety_notes": "Present on endothelial cells and healthy monocytes; potential for capillary leak syndrome.",
+    "clinical_trial_ncts": ["NCT03190278", "NCT04106079"]
+  },
+  "MUC1": {
+    "gene": "MUC1",
+    "full_name": "Mucin 1 (Tumor-Associated Glycoform / tMUC1)",
+    "cancer_types": ["Pancreatic Cancer", "Triple-Negative Breast Cancer", "Ovarian Cancer", "NSCLC"],
+    "approved_therapies": ["Investigational tMUC1 TAB004 and SM3-derived CAR-T"],
+    "scfv_sequence": "QVQLQQSGAELVKPGASVKMSCKASGYTFTSYVMHWVKQKPGQGLEWIGYINPYNDGTKYNEKFKGKATLTSDKSSSTAYMELSSLTSEDSAVYYCARGYYGSSYWYFDVWGTGTTVTVSSGGGGSGGGGSGGGGSDIELTQSPAIMSASPGEKVTMTCSASSSVSYMHWYQQKSGTSPKRWIYDTSKLASGVPARFSGSGSGTSYSLTISSMEAEDAATYYCQQWSSNPFTFGSGTKLEIK",
+    "hinge_transmembrane": "CD8alpha",
+    "costimulatory_domain": "4-1BB (CD137)",
+    "costimulatory_rationale": "Selective targeting of hypoglycosylated cancer-specific VNTR tandem repeats.",
+    "gtex_normal_median_tpm": 28.5,
+    "gtex_vital_organ_tpm": {
+      "heart": 0.4,
+      "brain": 0.8,
+      "liver": 1.2,
+      "lung": 48.2,
+      "kidney": 12.1
+    },
+    "safety_tier": "CAUTION",
+    "safety_notes": "High total MUC1 in pulmonary alveolar type II cells. Must utilize tumor-restricted aberrant glycoform (Tn-MUC1 / STn) specific scFvs.",
+    "clinical_trial_ncts": ["NCT02587689", "NCT04020575"]
+  },
+  "ROR1": {
+    "gene": "ROR1",
+    "full_name": "Receptor Tyrosine Kinase-Like Orphan Receptor 1",
+    "cancer_types": ["Triple-Negative Breast Cancer", "NSCLC", "Mantle Cell Lymphoma", "CLL"],
+    "approved_therapies": ["Investigational R12 / 2A2 scFv CAR-T"],
+    "scfv_sequence": "QVQLVQSGAEVKKPGASVKVSCKASGYTFTSYYMHWVRQAPGQGLEWMGIINPSGGSTSYAQKFQGRVTMTRDTSTSTVYMELSSLRSEDTAVYYCARGSYYYGMDYWGQGTLVTVSSGGGGSGGGGSGGGGSDIQMTQSPSSLSASVGDRVTITCRASQSISNYLNWYQQKPGKAPKLLIYAASSLQSGVPSRFSGSGSGTDFTLTISSLQPEDFATYYCQQSYSTPWTFGQGTKVEIK",
+    "hinge_transmembrane": "CD8alpha",
+    "costimulatory_domain": "4-1BB (CD137)",
+    "costimulatory_rationale": "Reduces tonic activation in solid tumors expressing low stromal ROR1.",
+    "gtex_normal_median_tpm": 1.5,
+    "gtex_vital_organ_tpm": {
+      "heart": 0.3,
+      "brain": 0.2,
+      "liver": 0.4,
+      "lung": 3.1,
+      "kidney": 0.6
+    },
+    "safety_tier": "SAFE",
+    "safety_notes": "Oncofetal receptor silenced in healthy adult tissues, with minimal pulmonary epithelial expression.",
+    "clinical_trial_ncts": ["NCT02706392", "NCT03391466"]
+  },
+  "CEACAM5": {
+    "gene": "CEACAM5",
+    "full_name": "Carcinoembryonic Antigen-Related Cell Adhesion Molecule 5 (CEA)",
+    "cancer_types": ["Colorectal Adenocarcinoma", "Gastric Cancer", "Pancreatic Cancer", "Medullary Thyroid Cancer"],
+    "approved_therapies": ["Investigational hMN-14 / MFE-23 derived CAR-T"],
+    "scfv_sequence": "QVQLVQSGAEVKKPGASVKVSCKASGYTFTEYTMHWVRQAPGQGLEWMGGVNPANGGANYSQKFQGRVTMTRDTSISTAYMELSRLRSDDTAVYYCARGPYGYYAMDYWGQGTLVTVSSGGGGSGGGGSGGGGSDIQMTQSPSSLSASVGDRVTITCKASQNVGTNVAWYQQKPGKAPKSLIYSASFLYSGVPSRFSGSGSGTDFTLTISSLQPEDFATYYCQQYYTYPLTFGQGTKVEIK",
+    "hinge_transmembrane": "CD8alpha",
+    "costimulatory_domain": "4-1BB (CD137)",
+    "costimulatory_rationale": "Solid GI tumors require 4-1BB to overcome checkpoint-mediated exhaustion.",
+    "gtex_normal_median_tpm": 18.2,
+    "gtex_vital_organ_tpm": {
+      "heart": 0.1,
+      "brain": 0.1,
+      "liver": 0.5,
+      "lung": 38.4,
+      "kidney": 0.3
+    },
+    "safety_tier": "CAUTION",
+    "safety_notes": "Expressed in colonic goblet cells and respiratory epithelium. Risk of severe acute respiratory distress; localized delivery preferred.",
+    "clinical_trial_ncts": ["NCT02349724", "NCT04348643"]
+  },
+  "Claudin6": {
+    "gene": "CLDN6",
+    "full_name": "Claudin-6 (Oncofetal Tight Junction Protein)",
+    "cancer_types": ["Testicular Cancer", "Ovarian Cancer", "Endometrial Cancer", "NSCLC"],
+    "approved_therapies": ["BioNTech BNT211 CAR-T"],
+    "scfv_sequence": "QVQLVQSGAEVKKPGASVKVSCKASGYTFTDYNMDWVRQAPGQGLEWMGDIDPNNGDTEYAQKFQGRVTMTRDTSISTAYMELSRLRSDDTAVYYCARGLYYGNYDYWGQGTLVTVSSGGGGSGGGGSGGGGSDIVMTQSPDSLAVSLGERATINCKSSQSVLYSSNNKNYLAWYQQKPGQPPKLLIYWASTRESGVPDRFSGSGSGTDFTLTISSLQAEDVAVYYCQQYYSTPLTFGGGTKVEIK",
+    "hinge_transmembrane": "CD8alpha",
+    "costimulatory_domain": "4-1BB (CD137)",
+    "costimulatory_rationale": "High clinical synergy when paired with CAR-T cell amplifying RNA vaccine (CAR-Vac).",
+    "gtex_normal_median_tpm": 0.1,
+    "gtex_vital_organ_tpm": {
+      "heart": 0.0,
+      "brain": 0.0,
+      "liver": 0.1,
+      "lung": 0.1,
+      "kidney": 0.0
+    },
+    "safety_tier": "SAFE",
+    "safety_notes": "Strict oncofetal silencing in adult tissues. Ideal therapeutic safety window with negligible off-tumor cross-reactivity.",
+    "clinical_trial_ncts": ["NCT04503278", "NCT06014086"]
+  },
+  "GPRC5D": {
+    "gene": "GPRC5D",
+    "full_name": "G Protein-Coupled Receptor Class C Group 5 Member D",
+    "cancer_types": ["Multiple Myeloma (including BCMA-relapsed)"],
+    "approved_therapies": ["Talquetamab (BiTE-approved), MCARH109 / BMS-986393 CAR-T"],
+    "scfv_sequence": "QVQLVQSGAEVKKPGESLKISCKGSGYSFTSYWIGWVRQMPGKGLEWMGIIYPGDSDTRYSPSFQGQVTISADKSISTAYLQWSSLKASDTAMYYCARHYGNYFDYWGQGTLVTVSSGGGGSGGGGSGGGGSDIVMTQSPSSLSASVGDRVTITCRASQDISNYLNWYQQKPGKAPKLLIYYTSRLHSGVPSRFSGSGSGTDYTLTISSLQPEDFATYFCQQGNTLPWTFGQGTKVEIK",
+    "hinge_transmembrane": "CD8alpha",
+    "costimulatory_domain": "4-1BB (CD137)",
+    "costimulatory_rationale": "Essential rescue target for multiple myeloma cells that lose BCMA.",
+    "gtex_normal_median_tpm": 1.1,
+    "gtex_vital_organ_tpm": {
+      "heart": 0.1,
+      "brain": 0.1,
+      "liver": 0.2,
+      "lung": 0.3,
+      "kidney": 0.2
+    },
+    "safety_tier": "SAFE",
+    "safety_notes": "Plasma-cell restricted except for low expression in hard keratinized tissues (hair follicles, nail beds). Skin/nail dyskeratosis is mild and reversible.",
+    "clinical_trial_ncts": ["NCT04555551", "NCT05431530"]
+  },
+  "DLL3": {
+    "gene": "DLL3",
+    "full_name": "Delta-Like Canonical Notch Ligand 3",
+    "cancer_types": ["Small Cell Lung Cancer (SCLC)", "Neuroendocrine Prostate Cancer", "Glioblastoma"],
+    "approved_therapies": ["AMG 119 and Tarlatamab (BiTE-approved), investigational CAR-T"],
+    "scfv_sequence": "QVQLQESGPGLVKPSQTLSLTCTVSGGSISSSSYYWNWIRQHPGKGLEWIGYIYYSGSTYYNPSLKSRVTISVDTSKNQFSLKLSSVTAADTAVYYCARDFYYGMDYWGQGTLVTVSSGGGGSGGGGSGGGGSDIQMTQSPSSLSASVGDRVTITCRASQSISSYLNWYQQKPGKAPKLLIYAASSLQSGVPSRFSGSGSGTDFTLTISSLQPEDFATYYCQQSYSTPFTFGQGTKVEIK",
+    "hinge_transmembrane": "CD8alpha",
+    "costimulatory_domain": "4-1BB (CD137)",
+    "costimulatory_rationale": "High neuroendocrine tumor selectivity with resistance to cold tumor stroma.",
+    "gtex_normal_median_tpm": 0.3,
+    "gtex_vital_organ_tpm": {
+      "heart": 0.1,
+      "brain": 1.2,
+      "liver": 0.1,
+      "lung": 0.2,
+      "kidney": 0.1
+    },
+    "safety_tier": "SAFE",
+    "safety_notes": "Retained intracellularly in normal cells; selectively trafficked to cell surface in neuroendocrine carcinomas.",
+    "clinical_trial_ncts": ["NCT03392064", "NCT05680922"]
+  }
+}

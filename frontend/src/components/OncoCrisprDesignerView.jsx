@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { Target, Shield, Dna, Activity, CheckCircle, AlertTriangle, Download, Copy, RefreshCw, BarChart2, Layers } from 'lucide-react';
+import { Target, Shield, Dna, Activity, CheckCircle, AlertTriangle, Download, Copy, RefreshCw, BarChart2, Layers, ExternalLink, Zap, Info } from 'lucide-react';
 
 // ── KNOWN DRIVER MUTATION SEQUENCES (for demo/quick-fill) ───────────────────
 const DRIVER_MUTATION_PRESETS = [
@@ -84,6 +84,18 @@ export default function OncoCrisprDesignerView({ somaticProfile }) {
   const [vaccineLoading, setVaccineLoading] = useState(false);
   const [linkerType, setLinkerType] = useState('AAY'); // 'AAY' | 'GPGPG' | 'KK'
   const [copiedFasta, setCopiedFasta] = useState(false);
+
+  // CAR-T Cell Surface Antigen & Construct Blueprint State (Feature 06)
+  const [cartCancerType, setCartCancerType] = useState('Pancreatic Ductal Adenocarcinoma (PDAC)');
+  const [cartSafetyFilter, setCartSafetyFilter] = useState('ALL'); // 'ALL' | 'SAFE' | 'CAUTION' | 'BLOCKED'
+  const [cartCandidates, setCartCandidates] = useState([]);
+  const [cartStats, setCartStats] = useState(null);
+  const [cartLoading, setCartLoading] = useState(false);
+  const [cartError, setCartError] = useState('');
+  const [selectedCartAntigen, setSelectedCartAntigen] = useState(null);
+  const [cartBlueprint, setCartBlueprint] = useState(null);
+  const [cartBlueprintLoading, setCartBlueprintLoading] = useState(false);
+  const [copiedCartFasta, setCopiedCartFasta] = useState(false);
 
   // Fetch driver gene RNA expression whenever selected gene changes
   useEffect(() => {
@@ -211,6 +223,63 @@ export default function OncoCrisprDesignerView({ somaticProfile }) {
     URL.revokeObjectURL(url);
   };
 
+  // ── CAR-T ENGINE HANDLERS (Feature 06) ──────────────────────────────────
+  useEffect(() => {
+    if (activeTab === 'cart_engine' && cartCandidates.length === 0) {
+      loadCartCandidates(cartCancerType);
+    }
+  }, [activeTab]);
+
+  const loadCartCandidates = async (cancer = cartCancerType) => {
+    setCartLoading(true);
+    setCartError('');
+    try {
+      const res = await api.getCartTargets({
+        cancer_type: cancer,
+        sample_id: somaticProfile?.tumor_sample_id || 'TCGA-PDAC'
+      });
+      setCartCandidates(res.candidates || []);
+      setCartStats({
+        safe: res.safe_count,
+        caution: res.caution_count,
+        blocked: res.blocked_count,
+        total: res.total_antigens_evaluated
+      });
+      if (res.top_recommended_antigen) {
+        loadCartBlueprint(res.top_recommended_antigen);
+      }
+    } catch (err) {
+      setCartError('Failed to load CAR-T targets: ' + (err.message || 'Server error'));
+    } finally {
+      setCartLoading(false);
+    }
+  };
+
+  const handleCancerTypeChange = (e) => {
+    const newCancer = e.target.value;
+    setCartCancerType(newCancer);
+    loadCartCandidates(newCancer);
+  };
+
+  const loadCartBlueprint = async (antigen) => {
+    setSelectedCartAntigen(antigen);
+    setCartBlueprintLoading(true);
+    try {
+      const res = await api.getCartBlueprint(antigen, somaticProfile?.tumor_sample_id || 'PATIENT_001');
+      setCartBlueprint(res);
+    } catch (err) {
+      console.error('Failed to load CAR-T blueprint:', err);
+    } finally {
+      setCartBlueprintLoading(false);
+    }
+  };
+
+  const copyCartFasta = (fasta) => {
+    navigator.clipboard.writeText(fasta);
+    setCopiedCartFasta(true);
+    setTimeout(() => setCopiedCartFasta(false), 3000);
+  };
+
   const DiscriminationBadge = ({ disc }) => {
     const color = DISCRIMINATION_COLOR[disc?.verdict] || 'slate';
     return (
@@ -226,13 +295,13 @@ export default function OncoCrisprDesignerView({ somaticProfile }) {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            🎯 OncoCRISPR & Neoantigen Vaccine Engine
-            <span className="text-xs font-normal px-2 py-0.5 bg-rose-900/50 text-rose-300 border border-rose-700 rounded">
-              ONCOLOGY SPRINT 2
+            🎯 Precision OncoTherapy Engineering
+            <span className="text-xs font-normal px-2 py-0.5 bg-rose-900/50 text-rose-300 border border-rose-700 rounded font-mono">
+              SPRINT 2 &amp; 3
             </span>
           </h1>
           <p className="text-sm text-slate-400 mt-1">
-            Designs somatic allele-specific CRISPR guides and personalized multi-allele mRNA/peptide neoantigen vaccines.
+            Designs somatic allele-specific CRISPR guides, personalized poly-epitope neoantigen vaccines, and CAR-T construct blueprints.
           </p>
         </div>
 
@@ -240,7 +309,7 @@ export default function OncoCrisprDesignerView({ somaticProfile }) {
         <div className="flex bg-slate-900 border border-slate-800 p-1 rounded-xl">
           <button
             onClick={() => setActiveTab('allele_crispr')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               activeTab === 'allele_crispr'
                 ? 'bg-blue-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-white'
@@ -250,13 +319,23 @@ export default function OncoCrisprDesignerView({ somaticProfile }) {
           </button>
           <button
             onClick={() => setActiveTab('neoantigen_vaccine')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               activeTab === 'neoantigen_vaccine'
                 ? 'bg-purple-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Dna className="w-4 h-4" /> Multi-Allele Neoantigen Vaccine
+            <Dna className="w-4 h-4" /> Neoantigen Vaccine
+          </button>
+          <button
+            onClick={() => setActiveTab('cart_engine')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === 'cart_engine'
+                ? 'bg-emerald-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Shield className="w-4 h-4" /> CAR-T Cell Engine
           </button>
         </div>
       </div>
@@ -757,6 +836,353 @@ export default function OncoCrisprDesignerView({ somaticProfile }) {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* TAB 3: CAR-T CELL SURFACE ANTIGEN & CONSTRUCT BLUEPRINT ENGINE (Feature 06) */}
+      {activeTab === 'cart_engine' && (
+        <div className="flex flex-col gap-6">
+          {/* Controls & Filter Bar */}
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Indication:</label>
+              <select
+                value={cartCancerType}
+                onChange={handleCancerTypeChange}
+                className="bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 font-medium focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+              >
+                <option value="Pancreatic Ductal Adenocarcinoma (PDAC)">Pancreatic Ductal Adenocarcinoma (PDAC)</option>
+                <option value="HER2+ Breast Cancer">HER2+ Breast Cancer</option>
+                <option value="Multiple Myeloma">Multiple Myeloma</option>
+                <option value="B-cell ALL">B-cell ALL</option>
+                <option value="Gastric Adenocarcinoma">Gastric Adenocarcinoma</option>
+                <option value="Hepatocellular Carcinoma (HCC)">Hepatocellular Carcinoma (HCC)</option>
+                <option value="Colorectal Adenocarcinoma">Colorectal Adenocarcinoma</option>
+                <option value="Glioblastoma Multiforme (GBM)">Glioblastoma Multiforme (GBM)</option>
+                <option value="Acute Myeloid Leukemia (AML)">Acute Myeloid Leukemia (AML)</option>
+                <option value="Small Cell Lung Cancer (SCLC)">Small Cell Lung Cancer (SCLC)</option>
+              </select>
+
+              <button
+                onClick={() => loadCartCandidates(cartCancerType)}
+                disabled={cartLoading}
+                className="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${cartLoading ? 'animate-spin' : ''}`} />
+                <span>Re-Score</span>
+              </button>
+            </div>
+
+            {/* Filter Pills */}
+            <div className="flex items-center gap-2 text-xs">
+              <button
+                onClick={() => setCartSafetyFilter('ALL')}
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                  cartSafetyFilter === 'ALL'
+                    ? 'bg-slate-700 text-white'
+                    : 'bg-slate-800/60 text-slate-400 hover:text-white'
+                }`}
+              >
+                All ({cartCandidates.length})
+              </button>
+              <button
+                onClick={() => setCartSafetyFilter('SAFE')}
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                  cartSafetyFilter === 'SAFE'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'bg-emerald-950/40 text-emerald-400 border border-emerald-800/60 hover:bg-emerald-900/60'
+                }`}
+              >
+                Safe ({cartStats?.safe || 0})
+              </button>
+              <button
+                onClick={() => setCartSafetyFilter('CAUTION')}
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                  cartSafetyFilter === 'CAUTION'
+                    ? 'bg-amber-600 text-white shadow-sm'
+                    : 'bg-amber-950/40 text-amber-400 border border-amber-800/60 hover:bg-amber-900/60'
+                }`}
+              >
+                Caution ({cartStats?.caution || 0})
+              </button>
+              <button
+                onClick={() => setCartSafetyFilter('BLOCKED')}
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                  cartSafetyFilter === 'BLOCKED'
+                    ? 'bg-rose-600 text-white shadow-sm'
+                    : 'bg-rose-950/40 text-rose-400 border border-rose-800/60 hover:bg-rose-900/60'
+                }`}
+              >
+                Blocked ({cartStats?.blocked || 0})
+              </button>
+            </div>
+          </div>
+
+          {cartError && (
+            <div className="bg-rose-950/60 border border-rose-700 text-rose-300 p-3 rounded-xl text-xs flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" /> {cartError}
+            </div>
+          )}
+
+          {/* Main Grid: Candidates List + Construct Blueprint Inspector */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left: Ranked Candidate Targets (5 cols) */}
+            <div className="lg:col-span-5 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  Ranked CAR-T Antigen Targets
+                </span>
+                <span className="text-xs text-slate-500 font-mono">
+                  GTEx v8 Baseline Cross-Reactivity
+                </span>
+              </div>
+
+              {cartLoading ? (
+                <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-8 text-center text-slate-400 text-xs">
+                  <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-400" />
+                  Calculating GTEx cross-reactivity & therapeutic windows...
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2 max-h-[700px] overflow-y-auto pr-1">
+                  {cartCandidates
+                    .filter(c => cartSafetyFilter === 'ALL' || c.safety.safety_tier === cartSafetyFilter)
+                    .map((target) => {
+                      const isSelected = selectedCartAntigen === target.antigen;
+                      const safetyTier = target.safety.safety_tier;
+                      const badgeBorder =
+                        safetyTier === 'SAFE'
+                          ? 'border-emerald-600/70 bg-emerald-950/30'
+                          : safetyTier === 'CAUTION'
+                          ? 'border-amber-600/70 bg-amber-950/30'
+                          : 'border-rose-600/70 bg-rose-950/30';
+                      
+                      const badgeText =
+                        safetyTier === 'SAFE'
+                          ? 'text-emerald-300 bg-emerald-900/50 border-emerald-700'
+                          : safetyTier === 'CAUTION'
+                          ? 'text-amber-300 bg-amber-900/50 border-amber-700'
+                          : 'text-rose-300 bg-rose-900/50 border-rose-700';
+
+                      return (
+                        <div
+                          key={target.antigen}
+                          onClick={() => loadCartBlueprint(target.antigen)}
+                          className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
+                            isSelected
+                              ? 'bg-slate-800/90 border-emerald-500 shadow-md ring-1 ring-emerald-500/50'
+                              : 'bg-slate-900/80 border-slate-800 hover:border-slate-700 hover:bg-slate-900'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-sm text-white font-mono">{target.antigen}</span>
+                                {target.is_cancer_matched && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-900/60 border border-blue-700 text-blue-300 font-semibold">
+                                    MATCHED
+                                  </span>
+                                )}
+                                <span className={`text-[10px] px-2 py-0.5 rounded font-bold border ${badgeText}`}>
+                                  {safetyTier}
+                                </span>
+                              </div>
+                              <div className="text-xs text-slate-400 mt-0.5">{target.full_name}</div>
+                            </div>
+
+                            <div className="text-right">
+                              <div className="text-xs font-mono font-bold text-emerald-400">
+                                {target.therapeutic_window_ratio}× Window
+                              </div>
+                              <div className="text-[10px] text-slate-500">
+                                Score: {target.composite_score}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Metrics Row */}
+                          <div className="grid grid-cols-3 gap-2 mt-2.5 pt-2 border-t border-slate-800/80 text-[11px]">
+                            <div>
+                              <span className="text-slate-500 block text-[10px]">Tumor TPM</span>
+                              <span className="font-mono font-semibold text-slate-200">{target.tumor_tpm}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500 block text-[10px]">Vital Max TPM</span>
+                              <span className={`font-mono font-semibold ${
+                                target.safety.vital_max_tpm > 20 ? 'text-rose-400' : target.safety.vital_max_tpm > 5 ? 'text-amber-400' : 'text-emerald-400'
+                              }`}>
+                                {target.safety.vital_max_tpm} ({target.safety.highest_risk_organ})
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500 block text-[10px]">Costim Domain</span>
+                              <span className="font-mono font-semibold text-purple-300">{target.costimulatory_domain}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+
+            {/* Right: Selected Construct Blueprint & Safety Analysis (7 cols) */}
+            <div className="lg:col-span-7 flex flex-col gap-4">
+              {cartBlueprintLoading ? (
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-12 text-center text-slate-400 text-xs">
+                  <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-3 text-emerald-400" />
+                  Synthesizing CAR construct domain sequences and safety dossier...
+                </div>
+              ) : cartBlueprint && cartBlueprint.status === 'success' ? (
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col gap-4">
+                  {/* Construct Header */}
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-bold text-white font-mono">{cartBlueprint.antigen} 2nd-Gen CAR</span>
+                        <span className="text-xs px-2 py-0.5 bg-purple-900/60 border border-purple-700 text-purple-300 rounded font-semibold font-mono">
+                          Clone: {cartBlueprint.scfv_clone}
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-400 mt-0.5">
+                        {cartBlueprint.full_name} &bull; Total Construct Length: <strong className="text-emerald-300">{cartBlueprint.total_amino_acids} aa</strong>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => copyCartFasta(cartBlueprint.fasta_export)}
+                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>{copiedCartFasta ? 'Copied FASTA!' : 'Copy FASTA'}</span>
+                      </button>
+                      <button
+                        onClick={() => downloadJson(cartBlueprint, `${cartBlueprint.antigen}_CAR_construct.json`)}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-md"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Export JSON</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 5' -> 3' Construct Domain Flow Visualizer */}
+                  <div className="bg-[#070b14] p-4 rounded-xl border border-slate-800 space-y-2.5">
+                    <div className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center justify-between">
+                      <span>2nd-Gen CAR Architecture (N-term &rarr; C-term)</span>
+                      <span className="text-[11px] text-slate-500 font-mono">Leader &bull; scFv &bull; Hinge-TM &bull; Costim &bull; Activation</span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs font-mono">
+                      <span className="px-2.5 py-1 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                        {cartBlueprint.domain_architecture.signal_peptide.name} ({cartBlueprint.domain_architecture.signal_peptide.sequence.length}aa)
+                      </span>
+                      <span className="text-slate-600">&rarr;</span>
+                      <span className="px-3 py-1 rounded bg-blue-950 text-blue-200 border border-blue-700 font-bold">
+                        scFv Binder ({cartBlueprint.domain_architecture.scfv_antigen_binding_domain.sequence.length}aa)
+                      </span>
+                      <span className="text-slate-600">&rarr;</span>
+                      <span className="px-2.5 py-1 rounded bg-indigo-950 text-indigo-300 border border-indigo-800">
+                        {cartBlueprint.domain_architecture.hinge_transmembrane.hinge_type} Hinge &amp; TM
+                      </span>
+                      <span className="text-slate-600">&rarr;</span>
+                      <span className="px-2.5 py-1 rounded bg-purple-950 text-purple-200 border border-purple-700 font-bold">
+                        {cartBlueprint.domain_architecture.costimulatory_domain.name}
+                      </span>
+                      <span className="text-slate-600">&rarr;</span>
+                      <span className="px-2.5 py-1 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">
+                        CD3-&zeta; (3 ITAMs)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* GTEx Normal Tissue Safety Audit Panel */}
+                  <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <Shield className="w-3.5 h-3.5 text-emerald-400" /> GTEx v8 Vital Organ Cross-Reactivity Risk
+                      </span>
+                      <span className={`text-xs px-2 py-0.5 rounded font-bold border ${
+                        cartBlueprint.safety_profile.safety_tier === 'SAFE'
+                          ? 'text-emerald-300 bg-emerald-900/50 border-emerald-700'
+                          : cartBlueprint.safety_profile.safety_tier === 'CAUTION'
+                          ? 'text-amber-300 bg-amber-900/50 border-amber-700'
+                          : 'text-rose-300 bg-rose-900/50 border-rose-700'
+                      }`}>
+                        {cartBlueprint.safety_profile.status_label}
+                      </span>
+                    </div>
+
+                    {/* 5 Vital Organs Bar */}
+                    <div className="grid grid-cols-5 gap-2 text-center text-xs">
+                      {Object.entries(cartBlueprint.safety_profile.organ_breakdown || {}).map(([organ, val]) => (
+                        <div key={organ} className="bg-slate-900 p-2 rounded-lg border border-slate-800">
+                          <div className="text-[10px] uppercase text-slate-500 font-semibold">{organ}</div>
+                          <div className={`font-mono font-bold mt-0.5 ${
+                            val > 20 ? 'text-rose-400' : val > 5 ? 'text-amber-400' : 'text-emerald-400'
+                          }`}>
+                            {val} TPM
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      {cartBlueprint.safety_notes}
+                    </p>
+                  </div>
+
+                  {/* Active Clinical Trials & Approved Therapies */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                    <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800 space-y-1.5">
+                      <div className="text-slate-400 font-semibold flex items-center gap-1">
+                        <Activity className="w-3.5 h-3.5 text-blue-400" /> Approved Therapies:
+                      </div>
+                      <div className="text-slate-200">
+                        {cartBlueprint.approved_therapies?.length > 0 ? (
+                          cartBlueprint.approved_therapies.join(', ')
+                        ) : (
+                          <span className="text-slate-500 italic">None currently FDA approved; active clinical trials</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800 space-y-1.5">
+                      <div className="text-slate-400 font-semibold flex items-center gap-1">
+                        <ExternalLink className="w-3.5 h-3.5 text-purple-400" /> ClinicalTrials.gov Matching:
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {cartBlueprint.clinical_trial_ncts?.map((nct) => (
+                          <a
+                            key={nct}
+                            href={`https://clinicaltrials.gov/study/${nct}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-mono text-purple-300 hover:text-purple-200 bg-purple-950/60 border border-purple-800 px-2 py-0.5 rounded text-[11px] inline-flex items-center gap-1"
+                          >
+                            <span>{nct}</span>
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Domain Sequences */}
+                  <div className="bg-[#070b14] p-3 rounded-xl border border-slate-800 space-y-2">
+                    <div className="text-xs font-semibold text-slate-400">scFv Antigen-Binding Domain (VH - Linker - VL):</div>
+                    <div className="font-mono text-xs text-blue-300 break-all bg-slate-950 p-2.5 rounded-lg border border-slate-800 max-h-24 overflow-y-auto">
+                      {cartBlueprint.domain_architecture.scfv_antigen_binding_domain.sequence}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-12 text-center text-slate-500 text-xs">
+                  Select a candidate target on the left to inspect its complete 2nd generation CAR construct blueprint.
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
